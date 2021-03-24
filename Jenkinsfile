@@ -50,7 +50,7 @@ pipeline {
 
             timeout(time: 10) {
               sh 'echo "What is this time?"'
-              // sh 'exit 1' // Failing that step
+              sh 'exit 1' // Failing that step
             }
             // build(job: 'has-web-app-new', propagate: true)
             emailext (
