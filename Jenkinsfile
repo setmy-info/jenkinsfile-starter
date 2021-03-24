@@ -1,8 +1,17 @@
 pipeline {
+
   agent any
+
+  environment {
+    PATH = "/opt/has/bin:$PATH"
+    ABC = 'DEF'
+    GHI = "$ABC"
+  }
+
   stages {
     stage('Parallel stage I') {
       parallel {
+
         stage('Stage name A') {
           steps {
             sh 'echo "Hello stage A : ${GHI}"'
@@ -22,6 +31,7 @@ pipeline {
 
     stage('Parallel stage II') {
       parallel {
+
         stage('Stage name C') {
           steps {
             echo 'Hello stage B'
@@ -40,34 +50,42 @@ pipeline {
 
             timeout(time: 10) {
               sh 'echo "What is this time?"'
+              // sh 'exit 1' // Failing that step
             }
-
-            emailext(subject: "Jenkins job: $JOB_NAME, build: $BUILD_NUMBER", body: "Job: $JOB_NAME, build: $BUILD_NUMBER, url: ${env.BUILD_URL}", recipientProviders: [[$class: 'DevelopersRecipientProvider']])
+            // build(job: 'has-web-app-new', propagate: true)
+            emailext (
+              subject: "Jenkins job: $JOB_NAME, build: $BUILD_NUMBER",
+              body: "Job: $JOB_NAME, build: $BUILD_NUMBER, url: ${env.BUILD_URL}",
+              recipientProviders: [[$class: 'DevelopersRecipientProvider']]
+            )
             fileExists 'README.md'
           }
         }
 
       }
     }
+  }
 
-  }
-  environment {
-    PATH = "/opt/has/bin:$PATH"
-    ABC = 'DEF'
-    GHI = "$ABC"
-  }
   post {
     always {
+      // junit '**/target/*-reports/*.xml'
       sh 'echo "Allways"'
     }
 
     success {
-      emailext(subject: "Jenkins job: $JOB_NAME, build: $BUILD_NUMBER type: SUCCESSFUL", body: "Job: $JOB_NAME, build: $BUILD_NUMBER, url: ${env.BUILD_URL}, git: ${env.GIT_URL}, branch: ${env.GIT_BRANCH} SUCCESSFUL post step", recipientProviders: [[$class: 'DevelopersRecipientProvider']])
+      emailext (
+        subject: "Jenkins job: $JOB_NAME, build: $BUILD_NUMBER type: SUCCESSFUL",
+        body: "Job: $JOB_NAME, build: $BUILD_NUMBER, url: ${env.BUILD_URL}, git: ${env.GIT_URL}, branch: ${env.GIT_BRANCH} SUCCESSFUL post step",
+        recipientProviders: [[$class: 'DevelopersRecipientProvider']]
+      )
     }
 
     failure {
-      emailext(subject: "Jenkins job: $JOB_NAME, build: $BUILD_NUMBER type: FAILED", body: "Job: $JOB_NAME, build: $BUILD_NUMBER, url: ${env.BUILD_URL}, git: ${env.GIT_URL}, branch: ${env.GIT_BRANCH}  FAILED post step", recipientProviders: [[$class: 'DevelopersRecipientProvider']])
+      emailext (
+        subject: "Jenkins job: $JOB_NAME, build: $BUILD_NUMBER type: FAILED",
+        body: "Job: $JOB_NAME, build: $BUILD_NUMBER, url: ${env.BUILD_URL}, git: ${env.GIT_URL}, branch: ${env.GIT_BRANCH}  FAILED post step",
+        recipientProviders: [[$class: 'DevelopersRecipientProvider']]
+      )
     }
-
   }
 }
