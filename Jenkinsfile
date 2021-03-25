@@ -125,7 +125,7 @@ pipeline {
         }
         stage('Deploy') {
             parallel {
-                stage('dev') {
+                stage('empty') {
                     steps {
                         echo 'Empty, just passing through'
                     }
