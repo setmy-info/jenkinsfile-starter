@@ -1,105 +1,197 @@
 pipeline {
 
-  agent any
+    agent any
 
-  environment {
-    PATH = "/opt/has/bin:$PATH"
-    ABC = 'DEF'
-    GHI = "$ABC"
-  }
-
-  stages {
-    stage('Parallel stage I') {
-      parallel {
-
-        stage('Stage name A') {
-          steps {
-            sh 'echo "Hello stage A : ${GHI}"'
-            echo 'Message'
-          }
-        }
-
-        stage('Stage name B') {
-          steps {
-            sh 'echo "Hello stage B"'
-            echo 'Message'
-          }
-        }
-
-      }
+    environment {
+        PATH = "/opt/has/bin:$PATH"
+        ABC = 'DEF'
+        GHI = "$ABC"
     }
 
-    stage('Parallel stage II') {
-      parallel {
-
-        stage('Stage name C') {
-          steps {
-            echo 'Hello stage B'
-            sh 'echo "Hello"'
-          }
+    stages {
+        stage('Inspection') {
+            parallel {
+                stage('Examples') {
+                    steps {
+                        echo 'That section can be deleted for real life situations'
+                        sh 'echo "GHI=${GHI}"'
+                        echo 'Message "GHI=${GHI}"'
+                        sleep 5
+                        retry(count: 7) {
+                            sh 'echo "Many times, why?"'
+                        }
+                        timeout(time: 10) {
+                            sh 'echo "What is this time?"'
+                            // sh 'exit 1' // Failing that step
+                        }
+                        // build(job: 'has-web-app-new', propagate: true)
+                        emailext (
+                            subject: "Jenkins job: $JOB_NAME, build: $BUILD_NUMBER",
+                            body: "Job: $JOB_NAME, build: $BUILD_NUMBER, url: ${env.BUILD_URL}",
+                            recipientProviders: [[$class: 'DevelopersRecipientProvider']]
+                        )
+                        fileExists 'README.md'
+                    }
+                }
+                stage('Build tools') {
+                    steps {
+                        echo 'Put here commands to check, that build tools are installed'
+                        sh 'echo "Hello stage B"'
+                    }
+                }                
+            }
         }
 
-        stage('Stage name D') {
-          steps {
-            echo 'Hello Stage D'
-            sh 'echo "Hello"'
-            sleep 5
-            retry(count: 7) {
-              sh 'echo "Many times, why?"'
+        stage('Preparation') {
+            parallel {
+                stage('Install') {
+                    steps {
+                        echo 'Installation commands go here'
+                        echo 'npm install'
+                    }
+                }
             }
+        }
 
-            timeout(time: 10) {
-              sh 'echo "What is this time?"'
-              // sh 'exit 1' // Failing that step
+        stage('Configuration') {
+            parallel {
+                stage('Config') {
+                    steps {
+                        echo 'Put here build configuration commands'
+                        echo './config'
+                    }
+                }
             }
-            // build(job: 'has-web-app-new', propagate: true)
+        }
+
+        stage('Build') {
+            stage('Resources') {
+                steps {
+                    echo 'Put here resource copy commands'
+                    echo 'mvn resources'
+                }
+            }
+            stage('Compile') {
+                steps {
+                    echo 'Put here compilation commands'
+                    echo 'mvn compile'
+                }
+            }
+            stage('Package') {
+                steps {
+                    echo 'Put here packaging'
+                    echo 'mvn package'
+                }
+            }
+            stage('Local publish') {
+                steps {
+                    echo 'Put here packaging'
+                    echo 'mvn install'
+                }
+            }
+        }
+
+        stage('Validation') {
+            stage('Unit tests') {
+                steps {
+                    echo 'Put here unit tests'
+                    echo 'mvn test'
+                }
+            }
+            stage('Unit tests coverage') {
+                steps {
+                    echo 'Put here unit tests'
+                    echo 'mvn test'
+                }
+            }
+            stage('Mutation tests coverage') {
+                steps {
+                    echo 'Put here unit tests'
+                    echo 'mvn test'
+                }
+            }
+            parallel {
+                stage('Code quality checks') {
+                    steps {
+                        echo 'Put here findbug/stopbug, style check'
+                    }
+                }
+                stage('Security checks') {
+                    steps {
+                        echo 'dependencies vulnreability checks'
+                    }
+                }
+                stage('Integration tests') {
+                    steps {
+                        echo 'Put here integration tests'
+                        echo 'mvn verify'
+                    }
+                }
+                stage('System tests') {
+                    steps {
+                        echo 'Put here system tests'
+                        echo 'mvn test'
+                    }
+                }
+                stage('Acceptance tests') {
+                    steps {
+                        echo 'Put here acceptance tests'
+                    }
+                }
+            }
+        }
+
+        stage('Reporting') {
+            parallel {
+                stage('Site') {
+                    steps {
+                        echo 'Put here reporting builds steps'
+                    }
+                }
+            }
+        }
+
+        stage('Deploy') {
+            parallel {
+                stage('Software publish') {
+                    steps {
+                        echo 'Put here software publishing steps'
+                    }
+                }
+                stage('Reports publish') {
+                    steps {
+                        echo 'Put here reports publishing steps'
+                    }
+                }
+                stage('Install') {
+                    steps {
+                        echo 'Put here software installations'
+                    }
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            // junit '**/target/*-reports/*.xml'
+            sh 'echo "Allways"'
+        }
+
+        success {
             emailext (
-              subject: "Jenkins job: $JOB_NAME, build: $BUILD_NUMBER",
-              body: "Job: $JOB_NAME, build: $BUILD_NUMBER, url: ${env.BUILD_URL}",
-              recipientProviders: [[$class: 'DevelopersRecipientProvider']]
+                subject: "Jenkins job: $JOB_NAME, build: $BUILD_NUMBER type: SUCCESSFUL",
+                body: "Job: $JOB_NAME, build: $BUILD_NUMBER, url: ${env.BUILD_URL}, git: ${env.GIT_URL}, branch: ${env.GIT_BRANCH} SUCCESSFUL post step",
+                recipientProviders: [[$class: 'DevelopersRecipientProvider']]
             )
-            fileExists 'README.md'
-          }
         }
 
-        stage('Stage for master branch') {
-          when { branch 'master' }
-          steps {
-            echo 'Master'
-          }
+        failure {
+            emailext (
+                subject: "Jenkins job: $JOB_NAME, build: $BUILD_NUMBER type: FAILED",
+                body: "Job: $JOB_NAME, build: $BUILD_NUMBER, url: ${env.BUILD_URL}, git: ${env.GIT_URL}, branch: ${env.GIT_BRANCH}  FAILED post step",
+                recipientProviders: [[$class: 'DevelopersRecipientProvider']]
+            )
         }
-
-        stage('Stage for development branch') {
-    	    when { branch 'develop' }
-            steps {
-              echo 'development'
-            }
-        }
-
-      }
     }
-  }
-
-  post {
-    always {
-      // junit '**/target/*-reports/*.xml'
-      sh 'echo "Allways"'
-    }
-
-    success {
-      emailext (
-        subject: "Jenkins job: $JOB_NAME, build: $BUILD_NUMBER type: SUCCESSFUL",
-        body: "Job: $JOB_NAME, build: $BUILD_NUMBER, url: ${env.BUILD_URL}, git: ${env.GIT_URL}, branch: ${env.GIT_BRANCH} SUCCESSFUL post step",
-        recipientProviders: [[$class: 'DevelopersRecipientProvider']]
-      )
-    }
-
-    failure {
-      emailext (
-        subject: "Jenkins job: $JOB_NAME, build: $BUILD_NUMBER type: FAILED",
-        body: "Job: $JOB_NAME, build: $BUILD_NUMBER, url: ${env.BUILD_URL}, git: ${env.GIT_URL}, branch: ${env.GIT_BRANCH}  FAILED post step",
-        recipientProviders: [[$class: 'DevelopersRecipientProvider']]
-      )
-    }
-  }
 }
