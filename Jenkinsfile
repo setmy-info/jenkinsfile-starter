@@ -86,7 +86,7 @@ pipeline {
             parallel {
                 stage('Release') {
                     when {
-                        branch '^master'
+                        branch 'master'
                     }
                     steps {
                         echo 'Put here software release steps'
