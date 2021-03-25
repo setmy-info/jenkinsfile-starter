@@ -150,10 +150,10 @@ pipeline {
                     when {
                         branch 'master'
                     }
-                    input {
+                    /*input {
                         message "Deploy to prelive?"
                         ok "Yes"
-                    }
+                    }*/
                     steps {
                         echo 'Put here software prelive installations steps'
                     }
