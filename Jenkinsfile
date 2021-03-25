@@ -125,9 +125,20 @@ pipeline {
         }
         stage('Install') {
             parallel {
-                stage('Install') {
+                stage('Production') {
+                    when {
+                        branch '^master'
+                    }
                     steps {
-                        echo 'Put here software installations'
+                        echo 'Put here software production installations steps'
+                    }
+                }
+                stage('Development') {
+                    when {
+                        branch 'develop'
+                    }
+                    steps {
+                        echo 'Put here software development installations steps'
                     }
                 }
             }
