@@ -7,11 +7,7 @@ pipeline {
         ABC = 'DEF'
         GHI = "$ABC"
     }
-
-    triggers {
-        cron('*/1 * * * *')
-    }
-    
+   
     stages {
         stage('Inspection') {
             parallel {
