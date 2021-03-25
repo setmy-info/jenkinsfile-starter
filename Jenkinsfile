@@ -98,7 +98,7 @@ pipeline {
                 }
                 stage('Snapshot publish') {
                     when {
-                        branch '^develop'
+                        branch 'develop'
                     }
                     steps {
                         echo 'Put here software snapshot publishing steps'
@@ -114,7 +114,7 @@ pipeline {
                 }
                 stage('Reports snapshot publish') {
                     when {
-                        branch '^develop'
+                        branch 'develop'
                     }
                     steps {
                         echo 'Put here reports publishing steps'
