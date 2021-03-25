@@ -142,6 +142,9 @@ pipeline {
                     }
                 }
                 stage('Prelive') {
+                    when {
+                        branch '^master'
+                    }
                     input {
                         message "Should we deploy to prelive?"
                         ok "Yes"
