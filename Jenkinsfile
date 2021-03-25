@@ -125,11 +125,6 @@ pipeline {
         }
         stage('Deploy') {
             parallel {
-                stage('empty') {
-                    steps {
-                        echo 'Empty, just passing through'
-                    }
-                }
                 stage('dev') {
                     when {
                         branch 'develop'
