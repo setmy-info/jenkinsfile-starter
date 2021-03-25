@@ -146,7 +146,7 @@ pipeline {
                         branch '^master'
                     }
                     input {
-                        message "Should we deploy to prelive?"
+                        message "Deploy to prelive?"
                         ok "Yes"
                     }
                     steps {
