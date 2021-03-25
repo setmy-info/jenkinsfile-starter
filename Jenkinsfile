@@ -78,23 +78,6 @@ pipeline {
                         echo 'mvn compile'
                     }
                 }
-                stage('Package') {
-                    steps {
-                        echo 'Put here packaging'
-                        echo 'mvn package'
-                    }
-                }
-                stage('Local publish') {
-                    steps {
-                        echo 'Put here packaging'
-                        echo 'mvn install'
-                    }
-                }
-            }
-        }
-
-        stage('Validation') {
-            stages {
                 stage('Unit tests') {
                     steps {
                         echo 'Put here unit tests'
@@ -113,33 +96,47 @@ pipeline {
                         echo 'mvn test'
                     }
                 }
-            }
-            parallel {
-                stage('Code quality checks') {
-                    steps {
-                        echo 'Put here findbug/stopbug, style check'
+                stage('Validation') {
+                    parallel {
+                        stage('Code quality checks') {
+                            steps {
+                                echo 'Put here findbug/stopbug, style check'
+                            }
+                        }
+                        stage('Security checks') {
+                            steps {
+                                echo 'dependencies vulnreability checks'
+                            }
+                        }
+                        stage('Integration tests') {
+                            steps {
+                                echo 'Put here integration tests'
+                                echo 'mvn verify'
+                            }
+                        }
+                        stage('System tests') {
+                            steps {
+                                echo 'Put here system tests'
+                                echo 'mvn test'
+                            }
+                        }
+                        stage('Acceptance tests') {
+                            steps {
+                                echo 'Put here acceptance tests'
+                            }
+                        }
                     }
                 }
-                stage('Security checks') {
+                stage('Package') {
                     steps {
-                        echo 'dependencies vulnreability checks'
+                        echo 'Put here packaging'
+                        echo 'mvn package'
                     }
                 }
-                stage('Integration tests') {
+                stage('Local publish') {
                     steps {
-                        echo 'Put here integration tests'
-                        echo 'mvn verify'
-                    }
-                }
-                stage('System tests') {
-                    steps {
-                        echo 'Put here system tests'
-                        echo 'mvn test'
-                    }
-                }
-                stage('Acceptance tests') {
-                    steps {
-                        echo 'Put here acceptance tests'
+                        echo 'Put here packaging'
+                        echo 'mvn install'
                     }
                 }
             }
