@@ -125,15 +125,12 @@ pipeline {
         }
         stage('Deploy') {
             parallel {
-                stage('Production') {
-                    when {
-                        branch '^master'
-                    }
+                stage('dev') {
                     steps {
-                        echo 'Put here software production installations steps'
+                        echo 'Empty, just passing through'
                     }
                 }
-                stage('Development') {
+                stage('dev') {
                     when {
                         branch 'develop'
                     }
@@ -141,9 +138,17 @@ pipeline {
                         echo 'Put here software development installations steps'
                     }
                 }
-                stage('Prelive') {
+                stage('testing') {
                     when {
-                        branch '^master'
+                        branch 'develop'
+                    }
+                    steps {
+                        echo 'Put here software development installations steps'
+                    }
+                }
+                stage('prelive') {
+                    when {
+                        branch 'master'
                     }
                     input {
                         message "Deploy to prelive?"
@@ -151,6 +156,14 @@ pipeline {
                     }
                     steps {
                         echo 'Put here software prelive installations steps'
+                    }
+                }
+                stage('live') {
+                    when {
+                        branch 'master'
+                    }
+                    steps {
+                        echo 'Put here software production installations steps'
                     }
                 }
             }
