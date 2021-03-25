@@ -88,7 +88,7 @@ pipeline {
 
         stage('Deploy') {
             parallel {
-                stage('Release publish') {
+                stage('Release') {
                     when {
                         branch '^master'
                     }
@@ -96,7 +96,7 @@ pipeline {
                         echo 'Put here software release steps'
                     }
                 }
-                stage('Snapshot publish') {
+                stage('Snapshot') {
                     when {
                         branch 'develop'
                     }
@@ -104,7 +104,7 @@ pipeline {
                         echo 'Put here software snapshot publishing steps'
                     }
                 }
-                stage('Reports release publish') {
+                stage('Release reports') {
                     when {
                         branch '^master'
                     }
@@ -112,7 +112,7 @@ pipeline {
                         echo 'Put here reports publishing steps'
                     }
                 }
-                stage('Reports snapshot publish') {
+                stage('Snapshot reports') {
                     when {
                         branch 'develop'
                     }
@@ -120,6 +120,15 @@ pipeline {
                         echo 'Put here reports publishing steps'
                     }
                 }
+                stage('Install') {
+                    steps {
+                        echo 'Put here software installations'
+                    }
+                }
+            }
+        }
+        stage('Install') {
+            parallel {
                 stage('Install') {
                     steps {
                         echo 'Put here software installations'
