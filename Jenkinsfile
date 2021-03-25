@@ -8,6 +8,10 @@ pipeline {
         GHI = "$ABC"
     }
 
+    triggers {
+        cron('*/1 * * * *')
+    }
+    
     stages {
         stage('Inspection') {
             parallel {
@@ -84,12 +88,34 @@ pipeline {
 
         stage('Deploy') {
             parallel {
-                stage('Software publish') {
+                stage('Release publish') {
+                    when {
+                        branch '^master'
+                    }
                     steps {
-                        echo 'Put here software publishing steps'
+                        echo 'Put here software release steps'
                     }
                 }
-                stage('Reports publish') {
+                stage('Snapshot publish') {
+                    when {
+                        branch '^develop'
+                    }
+                    steps {
+                        echo 'Put here software snapshot publishing steps'
+                    }
+                }
+                stage('Reports release publish') {
+                    when {
+                        branch '^master'
+                    }
+                    steps {
+                        echo 'Put here reports publishing steps'
+                    }
+                }
+                stage('Reports snapshot publish') {
+                    when {
+                        branch '^develop'
+                    }
                     steps {
                         echo 'Put here reports publishing steps'
                     }
