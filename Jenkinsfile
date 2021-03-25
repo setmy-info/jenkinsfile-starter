@@ -82,7 +82,7 @@ pipeline {
             }
         }
 
-        stage('Deploy') {
+        stage('Publish') {
             parallel {
                 stage('Release') {
                     when {
@@ -123,7 +123,7 @@ pipeline {
                 }
             }
         }
-        stage('Install') {
+        stage('Deploy') {
             parallel {
                 stage('Production') {
                     when {
