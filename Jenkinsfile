@@ -62,6 +62,20 @@ pipeline {
           }
         }
 
+        stage('Stage for master branch') {
+          when { branch 'master' }
+          steps {
+            echo 'Master'
+          }
+        }
+
+        stage('Stage for development branch') {
+    	    when { branch 'develop' }
+            steps {
+              echo 'development'
+            }
+        }
+
       }
     }
   }
