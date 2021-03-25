@@ -67,52 +67,18 @@ pipeline {
                 echo 'mvn test'
                 echo 'Put here mutation tests coverage'
                 echo 'mvn test'
+                echo 'Put here integration tests'
+                echo 'mvn verify'
+                echo 'Put here findbug/stopbug, style check'
+                echo 'dependencies vulnreability checks'
+                echo 'Put here system tests'
+                echo 'Put here acceptance tests'
+                echo 'Put here reporting builds steps can include (unit tests coverage, mutation test coverage, findbugs, vuln. checks, )'
+                echo 'mvn site'
                 echo 'Put here packaging'
                 echo 'mvn package'
                 echo 'Put here local publishing'
                 echo 'mvn install'
-            }
-        }
-        
-        stage('Validation') {
-            parallel {
-                stage('Code quality checks') {
-                    steps {
-                        echo 'Put here findbug/stopbug, style check'
-                    }
-                }
-                stage('Security checks') {
-                    steps {
-                        echo 'dependencies vulnreability checks'
-                    }
-                }
-                stage('Integration tests') {
-                    steps {
-                        echo 'Put here integration tests'
-                        echo 'mvn verify'
-                    }
-                }
-                stage('System tests') {
-                    steps {
-                        echo 'Put here system tests'
-                        echo 'mvn test'
-                    }
-                }
-                stage('Acceptance tests') {
-                    steps {
-                        echo 'Put here acceptance tests'
-                    }
-                }
-            }
-        }
-
-        stage('Reporting') {
-            parallel {
-                stage('Site') {
-                    steps {
-                        echo 'Put here reporting builds steps'
-                    }
-                }
             }
         }
 
