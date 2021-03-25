@@ -69,7 +69,10 @@ pipeline {
                         echo 'mvn test'
                         echo 'Put here mutation tests coverage'
                         echo 'mvn test'
-
+                        echo 'Put here packaging'
+                        echo 'mvn package'
+                        echo 'Put here local publishing'
+                        echo 'mvn install'
                     }
                 }
                 stage('Validation') {
@@ -101,18 +104,6 @@ pipeline {
                                 echo 'Put here acceptance tests'
                             }
                         }
-                    }
-                }
-                stage('Package') {
-                    steps {
-                        echo 'Put here packaging'
-                        echo 'mvn package'
-                    }
-                }
-                stage('Local publish') {
-                    steps {
-                        echo 'Put here packaging'
-                        echo 'mvn install'
                     }
                 }
             }
