@@ -102,7 +102,7 @@ pipeline {
                 }
                 stage('Release reports') {
                     when {
-                        branch '^master'
+                        branch 'master'
                     }
                     steps {
                         echo 'Put here reports publishing steps'
