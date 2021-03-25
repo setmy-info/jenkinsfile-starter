@@ -144,7 +144,7 @@ pipeline {
                 stage('Prelive') {
                     input {
                         message "Should we deploy to prelive?"
-                        ok "Yes, we should."
+                        ok "Yes"
                     }
                     steps {
                         echo 'Put here software prelive installations steps'
