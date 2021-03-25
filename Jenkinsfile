@@ -15,7 +15,7 @@ pipeline {
                     steps {
                         echo 'That section can be deleted for real life situations'
                         sh 'echo "GHI=${GHI}"'
-                        echo 'Message "GHI=${GHI}"'
+                        echo 'Message "GHI=$GHI"'
                         sleep 5
                         retry(count: 7) {
                             sh 'echo "Many times, why?"'
@@ -48,15 +48,6 @@ pipeline {
                     steps {
                         echo 'Installation commands go here'
                         echo 'npm install'
-                    }
-                }
-            }
-        }
-
-        stage('Configuration') {
-            stages {
-                stage('Config') {
-                    steps {
                         echo 'Put here build configuration commands'
                         echo './config'
                     }
@@ -70,30 +61,15 @@ pipeline {
                     steps {
                         echo 'Put here resource copy commands'
                         echo 'mvn resources'
-                    }
-                }
-                stage('Compile') {
-                    steps {
                         echo 'Put here compilation commands'
                         echo 'mvn compile'
-                    }
-                }
-                stage('Unit tests') {
-                    steps {
                         echo 'Put here unit tests'
                         echo 'mvn test'
-                    }
-                }
-                stage('Unit tests coverage') {
-                    steps {
-                        echo 'Put here unit tests'
+                        echo 'Put here unit tests coverage'
                         echo 'mvn test'
-                    }
-                }
-                stage('Mutation tests coverage') {
-                    steps {
-                        echo 'Put here unit tests'
+                        echo 'Put here mutation tests coverage'
                         echo 'mvn test'
+
                     }
                 }
                 stage('Validation') {
