@@ -65,49 +65,53 @@ pipeline {
         }
 
         stage('Build') {
-            stage('Resources') {
-                steps {
-                    echo 'Put here resource copy commands'
-                    echo 'mvn resources'
+            stages {
+                stage('Resources') {
+                    steps {
+                        echo 'Put here resource copy commands'
+                        echo 'mvn resources'
+                    }
                 }
-            }
-            stage('Compile') {
-                steps {
-                    echo 'Put here compilation commands'
-                    echo 'mvn compile'
+                stage('Compile') {
+                    steps {
+                        echo 'Put here compilation commands'
+                        echo 'mvn compile'
+                    }
                 }
-            }
-            stage('Package') {
-                steps {
-                    echo 'Put here packaging'
-                    echo 'mvn package'
+                stage('Package') {
+                    steps {
+                        echo 'Put here packaging'
+                        echo 'mvn package'
+                    }
                 }
-            }
-            stage('Local publish') {
-                steps {
-                    echo 'Put here packaging'
-                    echo 'mvn install'
+                stage('Local publish') {
+                    steps {
+                        echo 'Put here packaging'
+                        echo 'mvn install'
+                    }
                 }
             }
         }
 
         stage('Validation') {
-            stage('Unit tests') {
-                steps {
-                    echo 'Put here unit tests'
-                    echo 'mvn test'
+            stages {
+                stage('Unit tests') {
+                    steps {
+                        echo 'Put here unit tests'
+                        echo 'mvn test'
+                    }
                 }
-            }
-            stage('Unit tests coverage') {
-                steps {
-                    echo 'Put here unit tests'
-                    echo 'mvn test'
+                stage('Unit tests coverage') {
+                    steps {
+                        echo 'Put here unit tests'
+                        echo 'mvn test'
+                    }
                 }
-            }
-            stage('Mutation tests coverage') {
-                steps {
-                    echo 'Put here unit tests'
-                    echo 'mvn test'
+                stage('Mutation tests coverage') {
+                    steps {
+                        echo 'Put here unit tests'
+                        echo 'mvn test'
+                    }
                 }
             }
             parallel {
