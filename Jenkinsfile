@@ -162,6 +162,7 @@ pipeline {
             // junit '**/target/*-reports/*.xml'
             sh 'echo "Allways"'
         }
+
         success {
             emailext (
                 subject: "Jenkins job: $JOB_NAME, build: $BUILD_NUMBER type: SUCCESSFUL",
@@ -169,6 +170,7 @@ pipeline {
                 recipientProviders: [[$class: 'DevelopersRecipientProvider']]
             )
         }
+
         failure {
             emailext (
                 subject: "Jenkins job: $JOB_NAME, build: $BUILD_NUMBER type: FAILED",
