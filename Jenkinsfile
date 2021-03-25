@@ -19,7 +19,7 @@ pipeline {
                     steps {
                         echo 'That section can be deleted for real life situations'
                         sh 'echo "GHI=${GHI}"'
-                        echo 'Message "GHI=$GHI"'
+                        echo "Message GHI=${GHI}"
                         sleep 5
                         retry(count: 7) {
                             sh 'echo "Many times, why?"'
