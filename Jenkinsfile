@@ -125,15 +125,7 @@ pipeline {
         }
         stage('Deploy') {
             parallel {
-                stage('Production') {
-                    when {
-                        branch '^master'
-                    }
-                    steps {
-                        echo 'Put here software production installations steps'
-                    }
-                }
-                stage('Development') {
+                stage('dev') {
                     when {
                         branch 'develop'
                     }
@@ -141,16 +133,32 @@ pipeline {
                         echo 'Put here software development installations steps'
                     }
                 }
-                stage('Prelive') {
+                stage('testing') {
                     when {
-                        branch '^master'
-                    }
-                    input {
-                        message "Deploy to prelive?"
-                        ok "Yes"
+                        branch 'develop'
                     }
                     steps {
+                        echo 'Put here software development installations steps'
+                    }
+                }
+                stage('prelive') {
+                    when {
+                        branch 'master'
+                    }
+                    /*input {
+                        message "Deploy to prelive?"
+                        ok "Yes"
+                    }*/
+                    steps {
                         echo 'Put here software prelive installations steps'
+                    }
+                }
+                stage('live') {
+                    when {
+                        branch 'master'
+                    }
+                    steps {
+                        echo 'Put here software production installations steps'
                     }
                 }
             }
@@ -162,6 +170,7 @@ pipeline {
             // junit '**/target/*-reports/*.xml'
             sh 'echo "Allways"'
         }
+
         success {
             emailext (
                 subject: "Jenkins job: $JOB_NAME, build: $BUILD_NUMBER type: SUCCESSFUL",
@@ -169,6 +178,7 @@ pipeline {
                 recipientProviders: [[$class: 'DevelopersRecipientProvider']]
             )
         }
+
         failure {
             emailext (
                 subject: "Jenkins job: $JOB_NAME, build: $BUILD_NUMBER type: FAILED",
