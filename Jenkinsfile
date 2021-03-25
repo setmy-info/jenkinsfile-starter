@@ -141,6 +141,15 @@ pipeline {
                         echo 'Put here software development installations steps'
                     }
                 }
+                stage('Prelive') {
+                    input {
+                        message "Should we deploy to prelive?"
+                        ok "Yes, we should."
+                    }
+                    steps {
+                        echo 'Put here software prelive installations steps'
+                    }
+                }
             }
         }
     }
