@@ -56,54 +56,51 @@ pipeline {
         }
 
         stage('Build') {
-            stages {
-                stage('Resources') {
+            steps {
+                echo 'Put here resource copy commands'
+                echo 'mvn resources'
+                echo 'Put here compilation commands'
+                echo 'mvn compile'
+                echo 'Put here unit tests'
+                echo 'mvn test'
+                echo 'Put here unit tests coverage'
+                echo 'mvn test'
+                echo 'Put here mutation tests coverage'
+                echo 'mvn test'
+                echo 'Put here packaging'
+                echo 'mvn package'
+                echo 'Put here local publishing'
+                echo 'mvn install'
+            }
+        }
+        
+        stage('Validation') {
+            parallel {
+                stage('Code quality checks') {
                     steps {
-                        echo 'Put here resource copy commands'
-                        echo 'mvn resources'
-                        echo 'Put here compilation commands'
-                        echo 'mvn compile'
-                        echo 'Put here unit tests'
-                        echo 'mvn test'
-                        echo 'Put here unit tests coverage'
-                        echo 'mvn test'
-                        echo 'Put here mutation tests coverage'
-                        echo 'mvn test'
-                        echo 'Put here packaging'
-                        echo 'mvn package'
-                        echo 'Put here local publishing'
-                        echo 'mvn install'
+                        echo 'Put here findbug/stopbug, style check'
                     }
                 }
-                stage('Validation') {
-                    parallel {
-                        stage('Code quality checks') {
-                            steps {
-                                echo 'Put here findbug/stopbug, style check'
-                            }
-                        }
-                        stage('Security checks') {
-                            steps {
-                                echo 'dependencies vulnreability checks'
-                            }
-                        }
-                        stage('Integration tests') {
-                            steps {
-                                echo 'Put here integration tests'
-                                echo 'mvn verify'
-                            }
-                        }
-                        stage('System tests') {
-                            steps {
-                                echo 'Put here system tests'
-                                echo 'mvn test'
-                            }
-                        }
-                        stage('Acceptance tests') {
-                            steps {
-                                echo 'Put here acceptance tests'
-                            }
-                        }
+                stage('Security checks') {
+                    steps {
+                        echo 'dependencies vulnreability checks'
+                    }
+                }
+                stage('Integration tests') {
+                    steps {
+                        echo 'Put here integration tests'
+                        echo 'mvn verify'
+                    }
+                }
+                stage('System tests') {
+                    steps {
+                        echo 'Put here system tests'
+                        echo 'mvn test'
+                    }
+                }
+                stage('Acceptance tests') {
+                    steps {
+                        echo 'Put here acceptance tests'
                     }
                 }
             }
