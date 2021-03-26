@@ -146,8 +146,8 @@ pipeline {
                         branch 'master'
                     }
                     /*input {
-                        message "Deploy to prelive?"
-                        ok "Yes"
+                    message "Deploy to prelive?"
+                    ok "Yes"
                     }*/
                     steps {
                         echo 'Put here software prelive installations steps'
@@ -157,8 +157,15 @@ pipeline {
                     when {
                         branch 'master'
                     }
-                    steps {
-                        echo 'Put here software production installations steps'
+                    stage('deploy') {
+                        steps {
+                            echo 'Put here software production installations steps'
+                        }
+                    }
+                    stage('tag') {
+                        steps {
+                            echo 'Put here software tagging step'
+                        }
                     }
                 }
             }
