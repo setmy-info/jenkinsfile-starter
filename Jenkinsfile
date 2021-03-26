@@ -8,6 +8,13 @@ pipeline {
         GHI = "$ABC"
     }
    
+    parameters {
+        booleanParam(name: 'LIVE', defaultValue: true, description: 'Live environment dployment active')
+        booleanParam(name: 'PRELIVE', defaultValue: true, description: 'Prelive environment dployment active')
+        booleanParam(name: 'TEST', defaultValue: true, description: 'Test environment dployment active')
+        booleanParam(name: 'DEV', defaultValue: true, description: 'Dev environment dployment active')
+    }
+    
     stages {
         stage('Inspection') {
             parallel {
@@ -157,15 +164,9 @@ pipeline {
                     when {
                         branch 'master'
                     }
-                    stage('deploy') {
-                        steps {
-                            echo 'Put here software production installations steps'
-                        }
-                    }
-                    stage('tag') {
-                        steps {
-                            echo 'Put here software tagging step'
-                        }
+                    steps {
+                        echo 'Put here software production installations steps'
+                        echo 'Put here taging'
                     }
                 }
             }
