@@ -12,7 +12,7 @@ pipeline {
         booleanParam(name: 'LIVE', defaultValue: true, description: 'Live environment dployment active')
         booleanParam(name: 'PRELIVE', defaultValue: true, description: 'Prelive environment dployment active')
         booleanParam(name: 'TEST', defaultValue: true, description: 'Test environment dployment active')
-        booleanParam(name: 'DEV', defaultValue: true, description: 'Dev environment dployment active')
+        booleanParam(name: 'DEV', defaultValue: false, description: 'Dev environment dployment active')
     }
     
     stages {
@@ -137,7 +137,7 @@ pipeline {
                         allOf {
                             branch 'development'
                             expression {
-                                params.DEV == true
+                                params.DEV
                             }
                         }
                     }
