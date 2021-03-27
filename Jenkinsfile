@@ -134,11 +134,9 @@ pipeline {
             parallel {
                 stage('dev') {
                     when {
-                        allOf {
-                            branch 'development'
-                            expression {
-                                params.DEV
-                            }
+                        branch 'development'
+                        expression {
+                            params.DEV == true
                         }
                     }
                     steps {
