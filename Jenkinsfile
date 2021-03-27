@@ -134,8 +134,10 @@ pipeline {
             parallel {
                 stage('dev') {
                     when {
-                        branch 'development'
-                        params.DEV
+                        allOf {
+                            branch 'development'
+                            params.DEV == true
+                        }
                     }
                     steps {
                         echo 'Put here software development installations steps'
