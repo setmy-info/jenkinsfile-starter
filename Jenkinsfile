@@ -134,7 +134,8 @@ pipeline {
             parallel {
                 stage('dev') {
                     when {
-                        branch '^develop'
+                        branch 'development'
+                        params.DEV
                     }
                     steps {
                         echo 'Put here software development installations steps'
