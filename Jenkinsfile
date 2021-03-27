@@ -101,7 +101,7 @@ pipeline {
                 }
                 stage('Snapshot') {
                     when {
-                        branch 'develop'
+                        branch '^develop'
                     }
                     steps {
                         echo 'Put here software snapshot publishing steps'
@@ -117,7 +117,7 @@ pipeline {
                 }
                 stage('Snapshot reports') {
                     when {
-                        branch 'develop'
+                        branch '^develop'
                     }
                     steps {
                         echo 'Put here reports publishing steps'
@@ -134,7 +134,7 @@ pipeline {
             parallel {
                 stage('dev') {
                     when {
-                        branch 'develop'
+                        branch '^develop'
                     }
                     steps {
                         echo 'Put here software development installations steps'
@@ -142,7 +142,7 @@ pipeline {
                 }
                 stage('testing') {
                     when {
-                        branch 'develop'
+                        branch '^develop'
                     }
                     steps {
                         echo 'Put here software development installations steps'
@@ -166,7 +166,6 @@ pipeline {
                     }
                     steps {
                         echo 'Put here software production installations steps'
-                        echo 'Put here taging'
                     }
                 }
             }
