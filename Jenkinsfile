@@ -136,7 +136,9 @@ pipeline {
                     when {
                         allOf {
                             branch 'development'
-                            params.DEV == true
+                            expression {
+                                params.DEV == true
+                            }
                         }
                     }
                     steps {
