@@ -171,6 +171,11 @@ pipeline {
                 }
             }
         }
+        stage('Tag') {
+            steps {
+                echo 'Put here taging'
+            }        
+        }
     }
 
     post {
