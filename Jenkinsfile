@@ -6,13 +6,10 @@ pipeline {
         PATH = "/opt/has/bin:$PATH"
         ABC = 'DEF'
         GHI = "$ABC"
-    }
-   
-    parameters {
-        booleanParam(name: 'LIVE', defaultValue: true, description: 'Live environment dployment active')
-        booleanParam(name: 'PRELIVE', defaultValue: true, description: 'Prelive environment dployment active')
-        booleanParam(name: 'TEST', defaultValue: true, description: 'Test environment dployment active')
-        booleanParam(name: 'DEV', defaultValue: true, description: 'Dev environment dployment active')
+        LIVE = 'DEPLOY'
+        PRELIVE = 'DEPLOY'
+        TESTING = 'DEPLOY'
+        DEV = 'DEPLOY'
     }
     
     stages {
@@ -101,7 +98,7 @@ pipeline {
                 }
                 stage('Snapshot') {
                     when {
-                        branch 'develop'
+                        branch 'development'
                     }
                     steps {
                         echo 'Put here software snapshot publishing steps'
@@ -117,15 +114,10 @@ pipeline {
                 }
                 stage('Snapshot reports') {
                     when {
-                        branch 'develop'
+                        branch 'development'
                     }
                     steps {
                         echo 'Put here reports publishing steps'
-                    }
-                }
-                stage('Install') {
-                    steps {
-                        echo 'Put here software installations'
                     }
                 }
             }
@@ -134,7 +126,8 @@ pipeline {
             parallel {
                 stage('dev') {
                     when {
-                        branch 'develop'
+                        branch 'development'
+                        expression { env.DEV == 'DEPLOY' }
                     }
                     steps {
                         echo 'Put here software development installations steps'
@@ -142,7 +135,8 @@ pipeline {
                 }
                 stage('testing') {
                     when {
-                        branch 'develop'
+                        branch 'development'
+                        expression { env.TESTING == 'DEPLOY' }
                     }
                     steps {
                         echo 'Put here software development installations steps'
@@ -151,6 +145,7 @@ pipeline {
                 stage('prelive') {
                     when {
                         branch 'master'
+                        expression { env.PRELIVE == 'DEPLOY' }
                     }
                     /*input {
                     message "Deploy to prelive?"
@@ -163,15 +158,19 @@ pipeline {
                 stage('live') {
                     when {
                         branch 'master'
+                        expression { env.LIVE == 'DEPLOY' }
                     }
                     steps {
                         echo 'Put here software production installations steps'
-                        echo 'Put here taging'
                     }
                 }
             }
         }
         stage('Tag') {
+            when {
+                branch 'master'
+                expression { env.LIVE == 'DEPLOY' }
+            }
             steps {
                 echo 'Put here taging'
             }        
