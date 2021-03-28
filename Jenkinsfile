@@ -172,6 +172,10 @@ pipeline {
             }
         }
         stage('Tag') {
+            when {
+                branch 'master'
+                expression { env.LIVE == 'DEPLOY' }
+            }
             steps {
                 echo 'Put here taging'
             }        
