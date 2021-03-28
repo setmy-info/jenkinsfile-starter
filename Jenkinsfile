@@ -7,9 +7,9 @@ pipeline {
         ABC = 'DEF'
         GHI = "$ABC"
         LIVE = 'DEPLOY'
-        PRELIVE = 'DEPLOYDEPLOY'
-        TESTING = ''
-        DEV = 'DEPLOY'
+        PRELIVE = 'DEPLOY'
+        TESTING = 'DEPLOY'
+        DEV = 'NONE'
     }
     
     stages {
