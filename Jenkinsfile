@@ -9,7 +9,7 @@ pipeline {
         LIVE = 'DEPLOY'
         PRELIVE = 'DEPLOY'
         TESTING = 'DEPLOY'
-        DEV = 'NONE'
+        DEV = 'DEPLOY'
     }
     
     stages {
