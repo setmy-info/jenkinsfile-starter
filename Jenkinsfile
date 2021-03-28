@@ -147,10 +147,6 @@ pipeline {
                         branch 'master'
                         expression { env.PRELIVE == 'DEPLOY' }
                     }
-                    /*input {
-                    message "Deploy to prelive?"
-                    ok "Yes"
-                    }*/
                     steps {
                         echo 'Put here software prelive installations steps'
                     }
