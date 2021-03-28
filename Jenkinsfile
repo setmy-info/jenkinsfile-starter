@@ -120,11 +120,6 @@ pipeline {
                         echo 'Put here reports publishing steps'
                     }
                 }
-                stage('Install') {
-                    steps {
-                        echo 'Put here software installations'
-                    }
-                }
             }
         }
         stage('Deploy') {
