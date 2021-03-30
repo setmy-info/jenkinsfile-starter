@@ -13,7 +13,7 @@ pipeline {
         RELEASE_TO_PRELIVE = 'DEPLOY'
         
         DEVELOPMENT_TO_TESTING = 'NONE'
-        RELEASE_TO_TESTING = 'NONE'
+        RELEASE_TO_TESTING = 'DEPLOY'
         
         DEVELOPMENT_TO_DEV = 'DEPLOY'
         RELEASE_TO_DEV = 'DEPLOY'
