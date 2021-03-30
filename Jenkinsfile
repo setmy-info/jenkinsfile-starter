@@ -20,9 +20,6 @@ pipeline {
     }
     
     stages {
-        script {
-            
-        }
         stage('Inspection') {
             parallel {
                 stage('Examples') {
