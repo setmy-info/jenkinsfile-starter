@@ -126,8 +126,7 @@ pipeline {
             parallel {
                 stage('dev') {
                     when {
-                        branch 'development'
-                        expression { env.DEV == 'DEPLOY' }
+                        expression { env.DEV == 'DEPLOY' && env.BRANCH_NAME == 'development'}
                     }
                     steps {
                         echo 'Put here software development installations steps'
@@ -135,8 +134,7 @@ pipeline {
                 }
                 stage('testing') {
                     when {
-                        branch 'development'
-                        expression { env.TESTING == 'DEPLOY' }
+                        expression { env.TESTING == 'DEPLOY' && env.BRANCH_NAME == 'development'}
                     }
                     steps {
                         echo 'Put here software development installations steps'
@@ -144,8 +142,7 @@ pipeline {
                 }
                 stage('prelive') {
                     when {
-                        branch 'master'
-                        expression { env.PRELIVE == 'DEPLOY' }
+                        expression { env.PRELIVE == 'DEPLOY' && env.BRANCH_NAME == 'master'}
                     }
                     steps {
                         echo 'Put here software prelive installations steps'
@@ -153,8 +150,7 @@ pipeline {
                 }
                 stage('live') {
                     when {
-                        branch 'master'
-                        expression { env.LIVE == 'DEPLOY' }
+                        expression { env.LIVE == 'DEPLOY' && env.BRANCH_NAME == 'master'}
                     }
                     steps {
                         echo 'Put here software production installations steps'
