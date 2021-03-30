@@ -6,13 +6,23 @@ pipeline {
         PATH = "/opt/has/bin:$PATH"
         ABC = 'DEF'
         GHI = "$ABC"
-        LIVE = 'DEPLOY'
-        PRELIVE = 'DEPLOY'
+
+        MASTER_TO_LIVE = 'DEPLOY'
+
+        MASTER_TO_PRELIVE = 'DEPLOY'
+        RELEASE_TO_PRELIVE = 'DEPLOY'
+        
         DEVELOPMENT_TO_TESTING = 'NONE'
-        DEV = 'DEPLOY'
+        RELEASE_TO_TESTING = 'NONE'
+        
+        DEVELOPMENT_TO_DEV = 'DEPLOY'
+        RELEASE_TO_DEV = 'DEPLOY'
     }
     
     stages {
+        script {
+            
+        }
         stage('Inspection') {
             parallel {
                 stage('Examples') {
@@ -126,7 +136,10 @@ pipeline {
             parallel {
                 stage('dev') {
                     when {
-                        expression { env.DEV == 'DEPLOY' && env.BRANCH_NAME.startsWith('devel') }
+                        expression {
+                            (env.DEVELOPMENT_TO_DEV == 'DEPLOY' && env.BRANCH_NAME.startsWith('devel')) ||
+                            (env.RELEASE_TO_DEV == 'DEPLOY' && env.BRANCH_NAME.startsWith('release'))
+                        }
                     }
                     steps {
                         echo 'Put here software development installations steps'
@@ -134,7 +147,10 @@ pipeline {
                 }
                 stage('testing') {
                     when {
-                        expression { env.DEVELOPMENT_TO_TESTING == 'DEPLOY' && env.BRANCH_NAME.startsWith('devel') }
+                        expression {
+                            (env.DEVELOPMENT_TO_TESTING == 'DEPLOY' && env.BRANCH_NAME.startsWith('devel')) ||
+                            (env.RELEASE_TO_TESTING == 'DEPLOY' && env.BRANCH_NAME.startsWith('release'))
+                        }
                     }
                     steps {
                         echo 'Put here software development installations steps'
@@ -142,7 +158,9 @@ pipeline {
                 }
                 stage('prelive') {
                     when {
-                        expression { env.PRELIVE == 'DEPLOY' && env.BRANCH_NAME == 'master'}
+                        expression {
+                            env.RELEASE_TO_PRELIVE == 'DEPLOY' && env.BRANCH_NAME.startsWith('release')
+                        }
                     }
                     steps {
                         echo 'Put here software prelive installations steps'
@@ -150,7 +168,9 @@ pipeline {
                 }
                 stage('live') {
                     when {
-                        expression { env.LIVE == 'DEPLOY' && env.BRANCH_NAME == 'master'}
+                        expression {
+                            env.MASTER_TO_LIVE == 'DEPLOY' && env.BRANCH_NAME == 'master'
+                        }
                     }
                     steps {
                         echo 'Put here software production installations steps'
