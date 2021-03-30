@@ -12,7 +12,7 @@ pipeline {
         MASTER_TO_PRELIVE = 'DEPLOY'
         RELEASE_TO_PRELIVE = 'DEPLOY'
         
-        DEVELOPMENT_TO_TESTING = 'NONE'
+        DEVELOPMENT_TO_TESTING = 'DEPLOY'
         RELEASE_TO_TESTING = 'DEPLOY'
         
         DEVELOPMENT_TO_DEV = 'DEPLOY'
