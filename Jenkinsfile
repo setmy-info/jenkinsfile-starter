@@ -126,7 +126,7 @@ pipeline {
             parallel {
                 stage('dev') {
                     when {
-                        expression { env.DEV == 'DEPLOY' && env.BRANCH_NAME == 'development'}
+                        expression { env.DEV == 'DEPLOY' && env.BRANCH_NAME.startsWith('devel') }
                     }
                     steps {
                         echo 'Put here software development installations steps'
@@ -134,7 +134,7 @@ pipeline {
                 }
                 stage('testing') {
                     when {
-                        expression { env.DEVELOPMENT_TO_TESTING == 'DEPLOY' && env.BRANCH_NAME == 'development'}
+                        expression { env.DEVELOPMENT_TO_TESTING == 'DEPLOY' && env.BRANCH_NAME.startsWith('devel') }
                     }
                     steps {
                         echo 'Put here software development installations steps'
