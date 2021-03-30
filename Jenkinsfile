@@ -1,15 +1,22 @@
 pipeline {
-
+    
     agent any
 
     environment {
         PATH = "/opt/has/bin:$PATH"
         ABC = 'DEF'
         GHI = "$ABC"
-        LIVE = 'DEPLOY'
-        PRELIVE = 'DEPLOY'
-        TESTING = 'DEPLOY'
-        DEV = 'DEPLOY'
+
+        MASTER_TO_LIVE = 'DEPLOY'
+
+        MASTER_TO_PRELIVE = 'DEPLOY'
+        RELEASE_TO_PRELIVE = 'DEPLOY'
+        
+        DEVELOPMENT_TO_TESTING = 'DEPLOY'
+        RELEASE_TO_TESTING = 'DEPLOY'
+        
+        DEVELOPMENT_TO_DEV = 'DEPLOY'
+        RELEASE_TO_DEV = 'DEPLOY'
     }
     
     stages {
@@ -98,7 +105,7 @@ pipeline {
                 }
                 stage('Snapshot') {
                     when {
-                        branch 'development'
+                        expression { env.BRANCH_NAME.startsWith('devel') }
                     }
                     steps {
                         echo 'Put here software snapshot publishing steps'
@@ -114,7 +121,7 @@ pipeline {
                 }
                 stage('Snapshot reports') {
                     when {
-                        branch 'development'
+                        expression { env.BRANCH_NAME.startsWith('devel') }
                     }
                     steps {
                         echo 'Put here reports publishing steps'
@@ -126,8 +133,10 @@ pipeline {
             parallel {
                 stage('dev') {
                     when {
-                        branch 'development'
-                        expression { env.DEV == 'DEPLOY' }
+                        expression {
+                            (env.DEVELOPMENT_TO_DEV == 'DEPLOY' && env.BRANCH_NAME.startsWith('devel')) ||
+                            (env.RELEASE_TO_DEV == 'DEPLOY' && env.BRANCH_NAME.startsWith('release'))
+                        }
                     }
                     steps {
                         echo 'Put here software development installations steps'
@@ -135,8 +144,10 @@ pipeline {
                 }
                 stage('testing') {
                     when {
-                        branch 'development'
-                        expression { env.TESTING == 'DEPLOY' }
+                        expression {
+                            (env.DEVELOPMENT_TO_TESTING == 'DEPLOY' && env.BRANCH_NAME.startsWith('devel')) ||
+                            (env.RELEASE_TO_TESTING == 'DEPLOY' && env.BRANCH_NAME.startsWith('release'))
+                        }
                     }
                     steps {
                         echo 'Put here software development installations steps'
@@ -144,8 +155,9 @@ pipeline {
                 }
                 stage('prelive') {
                     when {
-                        branch 'master'
-                        expression { env.PRELIVE == 'DEPLOY' }
+                        expression {
+                            env.RELEASE_TO_PRELIVE == 'DEPLOY' && env.BRANCH_NAME.startsWith('release')
+                        }
                     }
                     steps {
                         echo 'Put here software prelive installations steps'
@@ -153,8 +165,9 @@ pipeline {
                 }
                 stage('live') {
                     when {
-                        branch 'master'
-                        expression { env.LIVE == 'DEPLOY' }
+                        expression {
+                            env.MASTER_TO_LIVE == 'DEPLOY' && env.BRANCH_NAME == 'master'
+                        }
                     }
                     steps {
                         echo 'Put here software production installations steps'
