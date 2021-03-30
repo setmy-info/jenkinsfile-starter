@@ -1,15 +1,18 @@
 pipeline {
 
+    final String NONE = 'NONE'
+    final String DEPLOY = 'DEPLOY'
+    
     agent any
 
     environment {
         PATH = "/opt/has/bin:$PATH"
         ABC = 'DEF'
         GHI = "$ABC"
-        LIVE = 'DEPLOY'
-        PRELIVE = 'DEPLOY'
-        DEVELOPMENT_TO_TESTING = 'NONE'
-        DEV = 'DEPLOY'
+        LIVE = DEPLOY
+        PRELIVE = DEPLOY
+        DEVELOPMENT_TO_TESTING = NONE
+        DEV = DEPLOY
     }
     
     stages {
