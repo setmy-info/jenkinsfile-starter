@@ -98,7 +98,7 @@ pipeline {
                 }
                 stage('Snapshot') {
                     when {
-                        branch 'development'
+                        expression { env.BRANCH_NAME.startsWith('devel') }
                     }
                     steps {
                         echo 'Put here software snapshot publishing steps'
@@ -114,7 +114,7 @@ pipeline {
                 }
                 stage('Snapshot reports') {
                     when {
-                        branch 'development'
+                        expression { env.BRANCH_NAME.startsWith('devel') }
                     }
                     steps {
                         echo 'Put here reports publishing steps'
