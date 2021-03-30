@@ -8,7 +8,7 @@ pipeline {
         GHI = "$ABC"
         LIVE = 'DEPLOY'
         PRELIVE = 'DEPLOY'
-        TESTING = 'DEPLOY'
+        DEVELOPMENT_TO_TESTING = 'NONE'
         DEV = 'DEPLOY'
     }
     
@@ -134,7 +134,7 @@ pipeline {
                 }
                 stage('testing') {
                     when {
-                        expression { env.TESTING == 'DEPLOY' && env.BRANCH_NAME == 'development'}
+                        expression { env.DEVELOPMENT_TO_TESTING == 'DEPLOY' && env.BRANCH_NAME == 'development'}
                     }
                     steps {
                         echo 'Put here software development installations steps'
