@@ -1,5 +1,7 @@
 pipeline {
-    
+
+    // version 1.0.0
+
     agent any
 
     environment {
@@ -11,14 +13,14 @@ pipeline {
 
         MASTER_TO_PRELIVE = 'DEPLOY'
         RELEASE_TO_PRELIVE = 'DEPLOY'
-        
+
         DEVELOPMENT_TO_TESTING = 'DEPLOY'
         RELEASE_TO_TESTING = 'DEPLOY'
-        
+
         DEVELOPMENT_TO_DEV = 'DEPLOY'
         RELEASE_TO_DEV = 'DEPLOY'
     }
-    
+
     stages {
         stage('Inspection') {
             parallel {
