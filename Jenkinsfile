@@ -184,7 +184,7 @@ pipeline {
             }
             steps {
                 echo 'Put here taging'
-            }        
+            }
         }
     }
 
