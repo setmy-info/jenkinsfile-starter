@@ -4,6 +4,10 @@ pipeline {
 
     agent any
 
+    triggers {
+        cron('H/5 * * * *')
+    }
+
     environment {
         PATH = "/opt/has/bin:$PATH"
         ABC = 'DEF'
@@ -100,6 +104,7 @@ pipeline {
                 stage('Release') {
                     when {
                         branch 'master'
+                        // changeset "**/file/to/be/changed"
                     }
                     steps {
                         echo 'Put here software release steps'
