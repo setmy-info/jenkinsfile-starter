@@ -4,9 +4,11 @@ pipeline {
 
     agent any
 
+    /*
     triggers {
         cron('H/5 * * * *')
     }
+    */
 
     environment {
         PATH = "/opt/has/bin:$PATH"
