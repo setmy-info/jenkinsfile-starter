@@ -30,9 +30,9 @@ pipeline {
     stages {
         stage('Inspection') {
             parallel {
-                stage('Examples') {
+                stage('Pre-build') {
                     steps {
-                        echo 'That section can be deleted for real life situations'
+                        echo 'Pre build inspection and precondition check. Put here commands to check, that build tools are installed. That section can be deleted for real life situations'
                         sh 'echo "GHI=${GHI}"'
                         echo "Message GHI=${GHI}"
                         sleep 5
@@ -54,7 +54,7 @@ pipeline {
                 }
                 stage('Build tools') {
                     steps {
-                        echo 'Put here commands to check, that build tools are installed'
+                        echo 'Build tools installation and preparation (setup, config)'
                         sh 'echo "Hello stage B"'
                     }
                 }                
@@ -65,7 +65,7 @@ pipeline {
             parallel {
                 stage('Install') {
                     steps {
-                        echo 'Installation commands go here'
+                        echo 'Preparing the software to be built. Installation commands go here.'
                         echo 'npm install'
                         echo 'Put here build configuration commands'
                         echo './config'
@@ -76,28 +76,44 @@ pipeline {
 
         stage('Build') {
             steps {
+                echo 'Cleaning command, because in some cases shared directories can have previous build garbage'
+                echo 'mvn clean'
+
                 echo 'Put here resource copy commands'
-                echo 'mvn resources'
-                echo 'Put here compilation commands'
-                echo 'mvn compile'
+                echo 'command to prepare files'
+
+                echo 'Put here compilation commands. Can be omitted.'
+                echo 'mvn compile -Pci'
+                echo 'mvn test-compile -Pci'
+
                 echo 'Put here unit tests'
-                echo 'mvn test'
-                echo 'Put here unit tests coverage'
-                echo 'mvn test'
-                echo 'Put here mutation tests coverage'
-                echo 'mvn test'
-                echo 'Put here integration tests'
-                echo 'mvn verify'
-                echo 'Put here findbug/stopbug, style check'
-                echo 'dependencies vulnreability checks'
+                echo 'mvn test -Pci'
+
+                echo 'Put here integration tests. Previous steps can be merged here,.'
+                echo 'mvn verify -Pci'
+                echo 'Or just: mvn clean verify -Pci (without previous)'
+
+                echo 'Put here mutation tests'
+                echo 'mvn org.pitest:pitest-maven:mutationCoverage'
+
+                echo 'Put here reporting builds steps can include (unit tests coverage, mutation test coverage, findbugs, vuln. checks, )'
+                echo 'Containing here findbug/stopbug, check style, dependencies vulnreability checks, docs gen, etc'
+                echo 'mvn site:site -Pci'
+
+                echo 'Put here site deploy'
+                echo 'mvn site:deploy -Pci'
+
+                echo 'Put here e2e tests'
+                echo 'mvn verify -Pe2e -Pci'
+
                 echo 'Put here system tests'
                 echo 'Put here acceptance tests'
-                echo 'Put here reporting builds steps can include (unit tests coverage, mutation test coverage, findbugs, vuln. checks, )'
-                echo 'mvn site'
+
                 echo 'Put here packaging'
-                echo 'mvn package'
+                echo 'mvn package -DskipTests -DskipITs -Pci'
+
                 echo 'Put here local publishing'
-                echo 'mvn install'
+                echo 'mvn deploy -DskipTests -DskipITs -Pci'
             }
         }
 

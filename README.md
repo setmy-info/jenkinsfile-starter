@@ -1,6 +1,18 @@
 # jenkinsfile-starter
 Jenkinsfile example and probe project to run in Jenkins.
 
+## Goals
+
+To get faster feedback, why is failing, in order:
+* code doesn't compile
+* test code doesn't compile
+* unit tests are failing
+* integration tests are failing
+* mutation tests are failing
+* qualiti measurements are failing
+* e2e tests are failing
+* acceptance tests are failing
+
 ## Requirements
 
 Master should go to live. No any other branch should go to live. Mostly conditional switch should be switched on.
