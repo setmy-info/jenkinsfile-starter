@@ -1,6 +1,6 @@
 pipeline {
 
-    // version 1.0.0
+    // version 1.0.1 - fileExists precondition check now actually gates (was a discarded boolean)
 
     agent any
 
@@ -49,7 +49,14 @@ pipeline {
                             body: "Job: $JOB_NAME, build: $BUILD_NUMBER, url: ${env.BUILD_URL}",
                             recipientProviders: [[$class: 'DevelopersRecipientProvider']]
                         )
-                        fileExists 'README.md'
+                        // fileExists only RETURNS a boolean - as a bare
+                        // statement its result is discarded and a missing
+                        // file fails nothing. It must be wrapped to gate.
+                        script {
+                            if (!fileExists('README.md')) {
+                                error('README.md missing - checkout incomplete or wrong workspace directory')
+                            }
+                        }
                     }
                 }
                 stage('Build tools') {
