@@ -1,3 +1,11 @@
+def runCommand(String command) {
+    if (isUnix()) {
+        sh command
+    } else {
+        bat command
+    }
+}
+
 pipeline {
 
     // version 1.0.1 - fileExists precondition check now actually gates (was a discarded boolean)
@@ -11,7 +19,8 @@ pipeline {
     */
 
     environment {
-        PATH = "/opt/has/bin:$PATH"
+        //Just for example
+        PATH+SMI = '/opt/setmy.info/bin'
         ABC = 'DEF'
         GHI = "$ABC"
 
@@ -32,15 +41,27 @@ pipeline {
             parallel {
                 stage('Pre-build') {
                     steps {
+                        echo "Jenkins node: ${env.NODE_NAME}"
+                        echo "Operating system: ${isUnix() ? 'Unix/Linux' : 'Windows'}"
+
+                        runCommand 'echo "Hello from command shell"'
+
+                        script {
+                            if (!fileExists('README.md')) {
+                                error('README.md missing')
+                            }
+                        }
+                    }
+                    steps {
                         echo 'Pre build inspection and precondition check. Put here commands to check, that build tools are installed. That section can be deleted for real life situations'
-                        sh 'echo "GHI=${GHI}"'
+                        runCommand 'echo "GHI=${GHI}"'
                         echo "Message GHI=${GHI}"
                         sleep 5
                         retry(count: 7) {
-                            sh 'echo "Many times, why?"'
+                            runCommand 'echo "Many times, why?"'
                         }
                         timeout(time: 10) {
-                            sh 'echo "What is this time?"'
+                            runCommand 'echo "What is this time?"'
                             // sh 'exit 1' // Failing that step
                         }
                         // build(job: 'has-web-app-new', propagate: true)
@@ -62,7 +83,7 @@ pipeline {
                 stage('Build tools') {
                     steps {
                         echo 'Build tools installation and preparation (setup, config)'
-                        sh 'echo "Hello stage B"'
+                        runCommand 'echo "Hello stage B"'
                     }
                 }                
             }
@@ -221,7 +242,7 @@ pipeline {
     post {
         always {
             // junit '**/target/*-reports/*.xml'
-            sh 'echo "Allways"'
+            runCommand 'echo "Allways"'
         }
 
         success {
