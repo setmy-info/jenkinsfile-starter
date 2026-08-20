@@ -20,7 +20,7 @@ pipeline {
 
     environment {
         //Just for example
-        PATH+SMI = '/opt/setmy.info/bin'
+        //PATH = "/opt/setmy.info/bin:$PATH"
         ABC = 'DEF'
         GHI = "$ABC"
 
