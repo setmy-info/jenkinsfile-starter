@@ -53,33 +53,27 @@ pipeline {
                                 error('README.md missing')
                             }
                         }
-                    }
-                    steps {
-                        echo 'Pre build inspection and precondition check. Put here commands to check, that build tools are installed. That section can be deleted for real life situations'
+
+                        echo 'Pre build inspection and precondition check. Put here commands to check, that build tools are installed.'
+
                         runCommand 'echo "GHI=${GHI}"'
                         echo "Message GHI=${GHI}"
+
                         sleep 5
+
                         retry(count: 7) {
                             runCommand 'echo "Many times, why?"'
                         }
+
                         timeout(time: 10) {
                             runCommand 'echo "What is this time?"'
-                            // sh 'exit 1' // Failing that step
                         }
-                        // build(job: 'has-web-app-new', propagate: true)
-                        emailext (
+
+                        emailext(
                             subject: "Jenkins job: $JOB_NAME, build: $BUILD_NUMBER",
                             body: "Job: $JOB_NAME, build: $BUILD_NUMBER, url: ${env.BUILD_URL}",
                             recipientProviders: [[$class: 'DevelopersRecipientProvider']]
                         )
-                        // fileExists only RETURNS a boolean - as a bare
-                        // statement its result is discarded and a missing
-                        // file fails nothing. It must be wrapped to gate.
-                        script {
-                            if (!fileExists('README.md')) {
-                                error('README.md missing - checkout incomplete or wrong workspace directory')
-                            }
-                        }
                     }
                 }
                 stage('Build tools') {
