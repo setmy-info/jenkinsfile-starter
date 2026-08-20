@@ -13,11 +13,19 @@ pipeline {
 
     agent any
 
-    /*
     triggers {
         cron('H/5 * * * *')
     }
-    */
+
+    options {
+        buildDiscarder(
+            logRotator(
+                numToKeepStr: '20',
+                artifactNumToKeepStr: '10'
+            )
+        )
+        //disableConcurrentBuilds(abortPrevious: true)
+    }
 
     environment {
         //Just for example
