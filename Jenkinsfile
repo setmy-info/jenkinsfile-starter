@@ -9,6 +9,9 @@ def runCommand(String command) {
 
 pipeline {
 
+    // version 1.1.0 - hotfix* branch support (Publish/Hotfix candidate stage, HOTFIX_TO_* deploy
+    //                 flags), TEST -> TEST (ADR-0041 canonical environment name), dead
+    //                 MASTER_TO_PRELIVE flag removed (no stage ever read it)
     // version 1.0.1 - fileExists precondition check now actually gates (was a discarded boolean)
 
     agent any
@@ -35,14 +38,21 @@ pipeline {
 
         MASTER_TO_LIVE = 'DEPLOY'
 
-        MASTER_TO_PRELIVE = 'DEPLOY'
         RELEASE_TO_PRELIVE = 'DEPLOY'
 
-        DEVELOPMENT_TO_TESTING = 'DEPLOY'
-        RELEASE_TO_TESTING = 'DEPLOY'
+        DEVELOPMENT_TO_TEST = 'DEPLOY'
+        RELEASE_TO_TEST = 'DEPLOY'
 
         DEVELOPMENT_TO_DEV = 'DEPLOY'
         RELEASE_TO_DEV = 'DEPLOY'
+
+        // hotfix* - branched from master, one fix, quick review + the FULL
+        // automated test path (nothing is skipped), merged to master, which
+        // then deploys live and tags. A hotfix reaches the same
+        // pre-production targets a release does and never goes live directly.
+        HOTFIX_TO_PRELIVE = 'DEPLOY'
+        HOTFIX_TO_TEST = 'DEPLOY'
+        HOTFIX_TO_DEV = 'SKIP'
     }
 
     stages {
@@ -167,6 +177,14 @@ pipeline {
                         echo 'Put here software snapshot publishing steps'
                     }
                 }
+                stage('Hotfix candidate') {
+                    when {
+                        expression { env.BRANCH_NAME.startsWith('hotfix') }
+                    }
+                    steps {
+                        echo 'Put here software hotfix-candidate publishing steps'
+                    }
+                }
                 stage('Release reports') {
                     when {
                         branch 'master'
@@ -191,18 +209,20 @@ pipeline {
                     when {
                         expression {
                             (env.DEVELOPMENT_TO_DEV == 'DEPLOY' && env.BRANCH_NAME.startsWith('devel')) ||
-                            (env.RELEASE_TO_DEV == 'DEPLOY' && env.BRANCH_NAME.startsWith('release'))
+                            (env.RELEASE_TO_DEV == 'DEPLOY' && env.BRANCH_NAME.startsWith('release')) ||
+                            (env.HOTFIX_TO_DEV == 'DEPLOY' && env.BRANCH_NAME.startsWith('hotfix'))
                         }
                     }
                     steps {
                         echo 'Put here software development installations steps'
                     }
                 }
-                stage('testing') {
+                stage('test') {
                     when {
                         expression {
-                            (env.DEVELOPMENT_TO_TESTING == 'DEPLOY' && env.BRANCH_NAME.startsWith('devel')) ||
-                            (env.RELEASE_TO_TESTING == 'DEPLOY' && env.BRANCH_NAME.startsWith('release'))
+                            (env.DEVELOPMENT_TO_TEST == 'DEPLOY' && env.BRANCH_NAME.startsWith('devel')) ||
+                            (env.RELEASE_TO_TEST == 'DEPLOY' && env.BRANCH_NAME.startsWith('release')) ||
+                            (env.HOTFIX_TO_TEST == 'DEPLOY' && env.BRANCH_NAME.startsWith('hotfix'))
                         }
                     }
                     steps {
@@ -212,7 +232,8 @@ pipeline {
                 stage('prelive') {
                     when {
                         expression {
-                            env.RELEASE_TO_PRELIVE == 'DEPLOY' && env.BRANCH_NAME.startsWith('release')
+                            (env.RELEASE_TO_PRELIVE == 'DEPLOY' && env.BRANCH_NAME.startsWith('release')) ||
+                            (env.HOTFIX_TO_PRELIVE == 'DEPLOY' && env.BRANCH_NAME.startsWith('hotfix'))
                         }
                     }
                     steps {

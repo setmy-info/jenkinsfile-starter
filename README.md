@@ -21,7 +21,10 @@ Release branch can go dev, test, prelive by conditional swirches.
 
 Develpoment branch is optional. Mostly Jenkisnfile is planned for trunk based development scenarios.
 
-Hotfix branch is not supported, because its can be and should be handled as release branch.
+Hotfix branch (`hotfix*`, branched from master) is supported since 1.1.0: it runs the full build/test path like every
+branch, publishes a hotfix candidate, and can deploy to test and prelive by conditional switches (`HOTFIX_TO_TEST`,
+`HOTFIX_TO_PRELIVE`; `HOTFIX_TO_DEV` off by default). It never goes live itself - after quick review and test it is
+merged to master, and the master build deploys live and tags.
 
 ### Jenkins plugins
 
