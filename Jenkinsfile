@@ -257,13 +257,6 @@ pipeline {
                 }
             }
         }
-        // comparator: 'REGEXP' below is not decoration. The default GLOB comparator's `*` does
-        // not cross a `/`, so `branch 'release*'` does NOT match `release/1.2.0` and `branch
-        // 'hotfix*'` does NOT match `hotfix/NPE` - every deployment for those two branches is
-        // then silently skipped. It is easy to miss, because `devel*` keeps working: `develop`
-        // has no separator in it. 'release.*' as a regular expression is what the earlier
-        // expression { env.BRANCH_NAME.startsWith('release') } actually meant. Use
-        // branch 'release/*' instead only if every release branch really is named with a slash.
         stage('Deploy') {
             parallel {
                 stage('dev') {
