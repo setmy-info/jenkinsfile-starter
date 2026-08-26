@@ -9,10 +9,35 @@ def runCommand(String command) {
 
 pipeline {
 
-    // version 1.1.0 - hotfix* branch support (Publish/Hotfix candidate stage, HOTFIX_TO_* deploy
-    //                 flags), TEST -> TEST (ADR-0041 canonical environment name), dead
-    //                 MASTER_TO_PRELIVE flag removed (no stage ever read it)
-    // version 1.0.1 - fileExists precondition check now actually gates (was a discarded boolean)
+    /*
+    version 1.1.0 - hotfix* branch support (Publish/Hotfix candidate stage, HOTFIX_TO_* deploy flags), TEST -> TEST (ADR-0041 canonical environment name), dead
+    version 1.0.1 - fileExists precondition check now actually gates (was a discarded boolean)
+
+    Git branches flow: develop -> feature -> develop -> release -> master
+
+    Steps
+    1. Enhancement event
+    2. feature branch from develop
+    3. Enhancements in feature branch - constant build in Jenkins by commits, cancel/avoid previous un started commits, try to execute only last
+    4. After successful build merge do develop - constant build in Jenkins by commits, cancel/avoid previous un started commits, try to execute only last
+    5. Go-No go event: Positive release and release testing decision by DEV and TEST environments
+    6. Make release branch - constant build in Jenkins by commits, cancel/avoid previous un started commits, try to execute only last. Code freeze period started.
+    7. Go-No go event: Positive release decision by DEV, TEST, PRELIVE environments
+    8. Merge release branch to master - constant build in Jenkins by commits, cancel/avoid previous un started commits, try to execute only last. Code freeze period ended.
+    9. Found a bug in production
+    10. hotfix branch from master
+    11. Enhancements in hotfix branch - constant build in Jenkins by commits, cancel/avoid previous un started commits, try to execute only last
+    12. Go-No go event: Positive release decision by TEST, PRELIVE environments. Decisions to do merging in steps or not (go to development testing, test testing and then decide again - desisions about next steps usage).
+    13. Hotfix merged develop.
+    14. Some previous steps activated.
+    15. Hotfix merged to master.
+
+    Automatic deployments to environments.
+
+    No pull request builds.
+
+    [5 branches] x [4 environments] x [ 2 types: Automatic, Manual]
+    */
 
     agent any
 
@@ -36,23 +61,24 @@ pipeline {
         ABC = 'DEF'
         GHI = "$ABC"
 
-        MASTER_TO_LIVE = 'DEPLOY'
-
-        RELEASE_TO_PRELIVE = 'DEPLOY'
-
-        DEVELOPMENT_TO_TEST = 'DEPLOY'
-        RELEASE_TO_TEST = 'DEPLOY'
-
-        DEVELOPMENT_TO_DEV = 'DEPLOY'
-        RELEASE_TO_DEV = 'DEPLOY'
-
         // hotfix* - branched from master, one fix, quick review + the FULL
         // automated test path (nothing is skipped), merged to master, which
         // then deploys live and tags. A hotfix reaches the same
         // pre-production targets a release does and never goes live directly.
+
+        MASTER_TO_LIVE = 'DEPLOY'
+
+        //MASTER_TO_PRELIVE = 'DEPLOY'
+        RELEASE_TO_PRELIVE = 'DEPLOY'
         HOTFIX_TO_PRELIVE = 'DEPLOY'
+
+        DEVELOPMENT_TO_TEST = 'DEPLOY'
+        RELEASE_TO_TEST = 'DEPLOY'
         HOTFIX_TO_TEST = 'DEPLOY'
-        HOTFIX_TO_DEV = 'SKIP'
+
+        DEVELOPMENT_TO_DEV = 'DEPLOY'
+        RELEASE_TO_DEV = 'DEPLOY'
+        //HOTFIX_TO_DEV = 'SKIP'
     }
 
     stages {
@@ -98,7 +124,7 @@ pipeline {
                         echo 'Build tools installation and preparation (setup, config)'
                         runCommand 'echo "Hello stage B"'
                     }
-                }                
+                }
             }
         }
 
