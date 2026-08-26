@@ -9,12 +9,77 @@ def runCommand(String command) {
 
 pipeline {
 
-    // version 1.0.1 - fileExists precondition check now actually gates (was a discarded boolean)
+    /*
+    version 1.1.0 - pollSCM instead of cron (build on new commits, not on a timer),
+                    quietPeriod + disableConcurrentBuilds(abortPrevious: true) so that a burst
+                    of commits becomes one build of the newest change,
+                    elease* added to Publish/Snapshot: develop, release* and hotfix* all publish
+                    a candidate of unknown quality
+                    TEST environment renamed to the ADR-0041 canonical name
+    version 1.0.1 - fileExists precondition check now actually gates (was a discarded boolean)
+
+    Git branches flow: develop -> feature -> develop -> release -> master
+
+    Building only the newest change
+    Every branch is polled for new commits, and commits arrive in bursts. Building each one of
+    them is wasted work, so a burst is collapsed twice: quietPeriod folds the commits that have
+    not started building yet into a single build, and disableConcurrentBuilds(abortPrevious:
+    true) aborts a run that is already in progress as soon as a newer one is ready. What gets
+    built is the newest change; the intermediate ones are skipped, not queued. See the options
+    block.
+
+    Steps
+    1. Enhancement event
+    2. feature branch from develop
+    3. Enhancements in feature branch - built on new commits, only the newest change is built
+    4. After successful build merge to develop - built on new commits, only the newest change is built
+    5. Go-No go event: Positive release and release testing decision by DEV and TEST environments
+    6. Make release branch - built on new commits, only the newest change is built. Code freeze period started.
+    7. Go-No go event: Positive release decision by DEV, TEST, PRELIVE environments
+    8. Merge release branch to master - built on new commits, only the newest change is built. Code freeze period ended.
+    9. Found a bug in production
+    10. hotfix branch from master
+    11. Enhancements in hotfix branch - built on new commits, only the newest change is built
+    12. Go-No go event: the hotfix is deployed to TEST and PRELIVE, where QA validates and
+        verifies it. The decision taken there is either "this is verified" - go to step 15 - or
+        "this needs more testing" - go to step 13.
+    13. Hotfix merged to develop, when the decision at step 12 asked for more testing.
+    14. The development flow continues from step 4, so the fix now also reaches DEV and is
+        tested again together with everything else on develop.
+    15. Hotfix merged to master. master is what deploys live and tags.
+
+    Automatic deployments to environments: every deployment below is triggered by the build
+    itself and gated only by the *_TO_* flags in the environment block. There is no manual
+    approval step (no input step) anywhere in this pipeline.
+
+    hotfix* - branched from master, one fix, quick review, then TEST and PRELIVE, where
+    QA validates and verifies it. It deliberately does not deploy to DEV: DEV is the
+    development integration target and a hotfix integrates nothing. If QA decides the fix
+    needs more testing it is merged to develop, and it reaches DEV through the normal
+    development flow from there. A hotfix is merged to master to go live, and master is
+    what deploys live and tags - a hotfix never goes live directly.
+
+    No pull request builds.
+
+    [5 branches] x [4 environments]. feature* deploys nowhere: it is built and tested only.
+    */
 
     agent any
 
     triggers {
-        cron('H/5 * * * *')
+        // pollSCM, not cron: cron fires on the timer whether or not anything was pushed, so it
+        // builds the same commit over and over. pollSCM asks the SCM every 5 minutes and only
+        // triggers when there really are new commits. H spreads the poll across the interval so
+        // that all jobs do not hit the SCM in the same second.
+        //
+        // In a MULTIBRANCH pipeline this is redundant and costs more than it gives: the folder
+        // already discovers commits by branch indexing, and this makes every branch job poll the
+        // repository separately on top of that - N branches, N pollers, all against one remote.
+        // The multibranch way is to leave this out and drive builds from either a webhook (best:
+        // instant, no polling at all) or the folder's own "Scan Multibranch Pipeline Triggers".
+        // It is kept here because this Jenkinsfile is also meant to work as a single branch job,
+        // where nothing else would trigger it.
+        pollSCM('H/5 * * * *')
     }
 
     options {
@@ -24,7 +89,30 @@ pipeline {
                 artifactNumToKeepStr: '10'
             )
         )
-        //disableConcurrentBuilds(abortPrevious: true)
+
+        // Commits arrive in bursts, and building every intermediate commit is wasted work.
+        // Two different mechanisms are needed, because they solve two different halves:
+        //
+        // quietPeriod - the burst that has not started building yet. After a trigger Jenkins
+        // holds the queue item this long before it becomes buildable, and every further commit
+        // inside the window folds into the same build.
+        //
+        // Both of these are PER JOB, and in a multibranch pipeline every branch is its own job.
+        // A quiet period on one branch does not hold another branch back - their windows count
+        // down at the same time - but it does delay every branch by this much, which is very
+        // visible when several branches are pushed at once. Keep it short: it only has to cover
+        // how long a push burst takes, not how long a build takes. Set it to 0 while testing the
+        // pipeline itself.
+        //
+        // disableConcurrentBuilds(abortPrevious: true) - the build that is already running.
+        // Without it Jenkins starts a second run beside the first whenever an executor is
+        // free, so several intermediate commits build at once. With it the runs of THIS branch
+        // are serialised, and abortPrevious kills the older run the moment a newer one is ready:
+        // the newest change wins and the superseded ones never finish. Other branches are not
+        // affected - if branches are waiting for each other, that is the executor count, not
+        // this option.
+        quietPeriod(15)
+        disableConcurrentBuilds(abortPrevious: true)
     }
 
     environment {
@@ -35,11 +123,12 @@ pipeline {
 
         MASTER_TO_LIVE = 'DEPLOY'
 
-        MASTER_TO_PRELIVE = 'DEPLOY'
         RELEASE_TO_PRELIVE = 'DEPLOY'
+        HOTFIX_TO_PRELIVE = 'DEPLOY'
 
-        DEVELOPMENT_TO_TESTING = 'DEPLOY'
-        RELEASE_TO_TESTING = 'DEPLOY'
+        DEVELOPMENT_TO_TEST = 'DEPLOY'
+        RELEASE_TO_TEST = 'DEPLOY'
+        HOTFIX_TO_TEST = 'DEPLOY'
 
         DEVELOPMENT_TO_DEV = 'DEPLOY'
         RELEASE_TO_DEV = 'DEPLOY'
@@ -88,7 +177,7 @@ pipeline {
                         echo 'Build tools installation and preparation (setup, config)'
                         runCommand 'echo "Hello stage B"'
                     }
-                }                
+                }
             }
         }
 
@@ -161,7 +250,7 @@ pipeline {
                 }
                 stage('Snapshot') {
                     when {
-                        expression { env.BRANCH_NAME.startsWith('devel') }
+                        branch pattern: 'devel.*', comparator: 'REGEXP'
                     }
                     steps {
                         echo 'Put here software snapshot publishing steps'
@@ -177,7 +266,7 @@ pipeline {
                 }
                 stage('Snapshot reports') {
                     when {
-                        expression { env.BRANCH_NAME.startsWith('devel') }
+                        branch pattern: 'devel.*', comparator: 'REGEXP'
                     }
                     steps {
                         echo 'Put here reports publishing steps'
@@ -189,30 +278,53 @@ pipeline {
             parallel {
                 stage('dev') {
                     when {
-                        expression {
-                            (env.DEVELOPMENT_TO_DEV == 'DEPLOY' && env.BRANCH_NAME.startsWith('devel')) ||
-                            (env.RELEASE_TO_DEV == 'DEPLOY' && env.BRANCH_NAME.startsWith('release'))
+                        anyOf {
+                            allOf {
+                                environment name: 'DEVELOPMENT_TO_DEV', value: 'DEPLOY'
+                                branch pattern: 'devel.*', comparator: 'REGEXP'
+                            }
+                            allOf {
+                                environment name: 'RELEASE_TO_DEV', value: 'DEPLOY'
+                                branch pattern: 'release.*', comparator: 'REGEXP'
+                            }
                         }
                     }
                     steps {
                         echo 'Put here software development installations steps'
                     }
                 }
-                stage('testing') {
+                stage('test') {
                     when {
-                        expression {
-                            (env.DEVELOPMENT_TO_TESTING == 'DEPLOY' && env.BRANCH_NAME.startsWith('devel')) ||
-                            (env.RELEASE_TO_TESTING == 'DEPLOY' && env.BRANCH_NAME.startsWith('release'))
+                        anyOf {
+                            allOf {
+                                environment name: 'DEVELOPMENT_TO_TEST', value: 'DEPLOY'
+                                branch pattern: 'devel.*', comparator: 'REGEXP'
+                            }
+                            allOf {
+                                environment name: 'RELEASE_TO_TEST', value: 'DEPLOY'
+                                branch pattern: 'release.*', comparator: 'REGEXP'
+                            }
+                            allOf {
+                                environment name: 'HOTFIX_TO_TEST', value: 'DEPLOY'
+                                branch pattern: 'hotfix.*', comparator: 'REGEXP'
+                            }
                         }
                     }
                     steps {
-                        echo 'Put here software development installations steps'
+                        echo 'Put here software test installations steps'
                     }
                 }
                 stage('prelive') {
                     when {
-                        expression {
-                            env.RELEASE_TO_PRELIVE == 'DEPLOY' && env.BRANCH_NAME.startsWith('release')
+                        anyOf {
+                            allOf {
+                                environment name: 'RELEASE_TO_PRELIVE', value: 'DEPLOY'
+                                branch pattern: 'release.*', comparator: 'REGEXP'
+                            }
+                            allOf {
+                                environment name: 'HOTFIX_TO_PRELIVE', value: 'DEPLOY'
+                                branch pattern: 'hotfix.*', comparator: 'REGEXP'
+                            }
                         }
                     }
                     steps {
@@ -221,9 +333,8 @@ pipeline {
                 }
                 stage('live') {
                     when {
-                        expression {
-                            env.MASTER_TO_LIVE == 'DEPLOY' && env.BRANCH_NAME == 'master'
-                        }
+                        environment name: 'MASTER_TO_LIVE', value: 'DEPLOY'
+                        branch 'master'
                     }
                     steps {
                         echo 'Put here software production installations steps'
@@ -233,8 +344,8 @@ pipeline {
         }
         stage('Tag') {
             when {
+                environment name: 'MASTER_TO_LIVE', value: 'DEPLOY'
                 branch 'master'
-                expression { env.MASTER_TO_LIVE == 'DEPLOY' }
             }
             steps {
                 echo 'Put here taging'
