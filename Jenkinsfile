@@ -68,7 +68,6 @@ pipeline {
 
         MASTER_TO_LIVE = 'DEPLOY'
 
-        //MASTER_TO_PRELIVE = 'DEPLOY'
         RELEASE_TO_PRELIVE = 'DEPLOY'
         HOTFIX_TO_PRELIVE = 'DEPLOY'
 
@@ -78,7 +77,6 @@ pipeline {
 
         DEVELOPMENT_TO_DEV = 'DEPLOY'
         RELEASE_TO_DEV = 'DEPLOY'
-        //HOTFIX_TO_DEV = 'SKIP'
     }
 
     stages {
