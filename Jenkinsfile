@@ -235,8 +235,6 @@ pipeline {
                     when {
                         anyOf {
                             expression { env.BRANCH_NAME.startsWith('devel') }
-                            expression { env.BRANCH_NAME.startsWith('release') }
-                            expression { env.BRANCH_NAME.startsWith('hotfix') }
                         }
                     }
                     steps {
@@ -255,8 +253,6 @@ pipeline {
                     when {
                         anyOf {
                             expression { env.BRANCH_NAME.startsWith('devel') }
-                            expression { env.BRANCH_NAME.startsWith('release') }
-                            expression { env.BRANCH_NAME.startsWith('hotfix') }
                         }
                     }
                     steps {
