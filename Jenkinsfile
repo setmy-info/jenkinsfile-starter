@@ -233,9 +233,7 @@ pipeline {
                 }
                 stage('Snapshot') {
                     when {
-                        anyOf {
-                            expression { env.BRANCH_NAME.startsWith('devel') }
-                        }
+                        branch 'devel*'
                     }
                     steps {
                         echo 'Put here software snapshot publishing steps'
@@ -251,9 +249,7 @@ pipeline {
                 }
                 stage('Snapshot reports') {
                     when {
-                        anyOf {
-                            expression { env.BRANCH_NAME.startsWith('devel') }
-                        }
+                        branch 'devel*'
                     }
                     steps {
                         echo 'Put here reports publishing steps'
@@ -265,9 +261,15 @@ pipeline {
             parallel {
                 stage('dev') {
                     when {
-                        expression {
-                            (env.DEVELOPMENT_TO_DEV == 'DEPLOY' && env.BRANCH_NAME.startsWith('devel')) ||
-                            (env.RELEASE_TO_DEV == 'DEPLOY' && env.BRANCH_NAME.startsWith('release'))
+                        anyOf {
+                            allOf {
+                                environment name: 'DEVELOPMENT_TO_DEV', value: 'DEPLOY'
+                                branch 'devel*'
+                            }
+                            allOf {
+                                environment name: 'RELEASE_TO_DEV', value: 'DEPLOY'
+                                branch 'release*'
+                            }
                         }
                     }
                     steps {
@@ -276,21 +278,36 @@ pipeline {
                 }
                 stage('test') {
                     when {
-                        expression {
-                            (env.DEVELOPMENT_TO_TEST == 'DEPLOY' && env.BRANCH_NAME.startsWith('devel')) ||
-                            (env.RELEASE_TO_TEST == 'DEPLOY' && env.BRANCH_NAME.startsWith('release')) ||
-                            (env.HOTFIX_TO_TEST == 'DEPLOY' && env.BRANCH_NAME.startsWith('hotfix'))
+                        anyOf {
+                            allOf {
+                                environment name: 'DEVELOPMENT_TO_TEST', value: 'DEPLOY'
+                                branch 'devel*'
+                            }
+                            allOf {
+                                environment name: 'RELEASE_TO_TEST', value: 'DEPLOY'
+                                branch 'release*'
+                            }
+                            allOf {
+                                environment name: 'HOTFIX_TO_TEST', value: 'DEPLOY'
+                                branch 'hotfix*'
+                            }
                         }
                     }
                     steps {
-                        echo 'Put here software development installations steps'
+                        echo 'Put here software test installations steps'
                     }
                 }
                 stage('prelive') {
                     when {
-                        expression {
-                            (env.RELEASE_TO_PRELIVE == 'DEPLOY' && env.BRANCH_NAME.startsWith('release')) ||
-                            (env.HOTFIX_TO_PRELIVE == 'DEPLOY' && env.BRANCH_NAME.startsWith('hotfix'))
+                        anyOf {
+                            allOf {
+                                environment name: 'RELEASE_TO_PRELIVE', value: 'DEPLOY'
+                                branch 'release*'
+                            }
+                            allOf {
+                                environment name: 'HOTFIX_TO_PRELIVE', value: 'DEPLOY'
+                                branch 'hotfix*'
+                            }
                         }
                     }
                     steps {
@@ -299,9 +316,8 @@ pipeline {
                 }
                 stage('live') {
                     when {
-                        expression {
-                            env.MASTER_TO_LIVE == 'DEPLOY' && env.BRANCH_NAME == 'master'
-                        }
+                        environment name: 'MASTER_TO_LIVE', value: 'DEPLOY'
+                        branch 'master'
                     }
                     steps {
                         echo 'Put here software production installations steps'
@@ -311,8 +327,8 @@ pipeline {
         }
         stage('Tag') {
             when {
+                environment name: 'MASTER_TO_LIVE', value: 'DEPLOY'
                 branch 'master'
-                expression { env.MASTER_TO_LIVE == 'DEPLOY' }
             }
             steps {
                 echo 'Put here taging'
