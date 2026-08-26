@@ -10,39 +10,68 @@ def runCommand(String command) {
 pipeline {
 
     /*
-    version 1.1.0 - hotfix* branch support (Publish/Hotfix candidate stage, HOTFIX_TO_* deploy flags), TEST -> TEST (ADR-0041 canonical environment name), dead
+    version 1.1.0 - pollSCM instead of cron (build on new commits, not on a timer),
+                    quietPeriod + disableConcurrentBuilds(abortPrevious: true) so that a burst
+                    of commits becomes one build of the newest change,
+                    elease* added to Publish/Snapshot: develop, release* and hotfix* all publish
+                    a candidate of unknown quality
+                    TEST environment renamed to the ADR-0041 canonical name
     version 1.0.1 - fileExists precondition check now actually gates (was a discarded boolean)
 
     Git branches flow: develop -> feature -> develop -> release -> master
 
+    Building only the newest change
+    Every branch is polled for new commits, and commits arrive in bursts. Building each one of
+    them is wasted work, so a burst is collapsed twice: quietPeriod folds the commits that have
+    not started building yet into a single build, and disableConcurrentBuilds(abortPrevious:
+    true) aborts a run that is already in progress as soon as a newer one is ready. What gets
+    built is the newest change; the intermediate ones are skipped, not queued. See the options
+    block.
+
     Steps
     1. Enhancement event
     2. feature branch from develop
-    3. Enhancements in feature branch - constant build in Jenkins by commits, cancel/avoid previous un started commits, try to execute only last
-    4. After successful build merge do develop - constant build in Jenkins by commits, cancel/avoid previous un started commits, try to execute only last
+    3. Enhancements in feature branch - built on new commits, only the newest change is built
+    4. After successful build merge to develop - built on new commits, only the newest change is built
     5. Go-No go event: Positive release and release testing decision by DEV and TEST environments
-    6. Make release branch - constant build in Jenkins by commits, cancel/avoid previous un started commits, try to execute only last. Code freeze period started.
+    6. Make release branch - built on new commits, only the newest change is built. Code freeze period started.
     7. Go-No go event: Positive release decision by DEV, TEST, PRELIVE environments
-    8. Merge release branch to master - constant build in Jenkins by commits, cancel/avoid previous un started commits, try to execute only last. Code freeze period ended.
+    8. Merge release branch to master - built on new commits, only the newest change is built. Code freeze period ended.
     9. Found a bug in production
     10. hotfix branch from master
-    11. Enhancements in hotfix branch - constant build in Jenkins by commits, cancel/avoid previous un started commits, try to execute only last
-    12. Go-No go event: Positive release decision by TEST, PRELIVE environments. Decisions to do merging in steps or not (go to development testing, test testing and then decide again - desisions about next steps usage).
-    13. Hotfix merged develop.
-    14. Some previous steps activated.
-    15. Hotfix merged to master.
+    11. Enhancements in hotfix branch - built on new commits, only the newest change is built
+    12. Go-No go event: the hotfix is deployed to TEST and PRELIVE, where QA validates and
+        verifies it. The decision taken there is either "this is verified" - go to step 15 - or
+        "this needs more testing" - go to step 13.
+    13. Hotfix merged to develop, when the decision at step 12 asked for more testing.
+    14. The development flow continues from step 4, so the fix now also reaches DEV and is
+        tested again together with everything else on develop.
+    15. Hotfix merged to master. master is what deploys live and tags.
 
-    Automatic deployments to environments.
+    Automatic deployments to environments: every deployment below is triggered by the build
+    itself and gated only by the *_TO_* flags in the environment block. There is no manual
+    approval step (no input step) anywhere in this pipeline.
+
+    hotfix* - branched from master, one fix, quick review, then TEST and PRELIVE, where
+    QA validates and verifies it. It deliberately does not deploy to DEV: DEV is the
+    development integration target and a hotfix integrates nothing. If QA decides the fix
+    needs more testing it is merged to develop, and it reaches DEV through the normal
+    development flow from there. A hotfix is merged to master to go live, and master is
+    what deploys live and tags - a hotfix never goes live directly.
 
     No pull request builds.
 
-    [5 branches] x [4 environments] x [ 2 types: Automatic, Manual]
+    [5 branches] x [4 environments]. feature* deploys nowhere: it is built and tested only.
     */
 
     agent any
 
     triggers {
-        cron('H/5 * * * *')
+        // pollSCM, not cron: cron fires on the timer whether or not anything was pushed, so it
+        // builds the same commit over and over. pollSCM asks the SCM every 5 minutes and only
+        // triggers when there really are new commits. H spreads the poll across the interval so
+        // that all jobs do not hit the SCM in the same second.
+        pollSCM('H/5 * * * *')
     }
 
     options {
@@ -52,7 +81,21 @@ pipeline {
                 artifactNumToKeepStr: '10'
             )
         )
-        //disableConcurrentBuilds(abortPrevious: true)
+
+        // Commits arrive in bursts, and building every intermediate commit is wasted work.
+        // Two different mechanisms are needed, because they solve two different halves:
+        //
+        // quietPeriod - the burst that has not started building yet. After a trigger Jenkins
+        // waits this long before starting, and every further commit inside the window folds
+        // into the same build. Ten commits pushed within two minutes become one build.
+        //
+        // disableConcurrentBuilds(abortPrevious: true) - the build that is already running.
+        // Without it Jenkins starts a second run beside the first whenever an executor is
+        // free, so several intermediate commits build at once. With it the runs are
+        // serialised, and abortPrevious kills the older run the moment a newer one is ready:
+        // the newest change wins and the superseded ones never finish.
+        quietPeriod(120)
+        disableConcurrentBuilds(abortPrevious: true)
     }
 
     environment {
@@ -60,11 +103,6 @@ pipeline {
         //PATH = "/opt/setmy.info/bin:$PATH"
         ABC = 'DEF'
         GHI = "$ABC"
-
-        // hotfix* - branched from master, one fix, quick review + the FULL
-        // automated test path (nothing is skipped), merged to master, which
-        // then deploys live and tags. A hotfix reaches the same
-        // pre-production targets a release does and never goes live directly.
 
         MASTER_TO_LIVE = 'DEPLOY'
 
@@ -195,18 +233,14 @@ pipeline {
                 }
                 stage('Snapshot') {
                     when {
-                        expression { env.BRANCH_NAME.startsWith('devel') }
+                        anyOf {
+                            expression { env.BRANCH_NAME.startsWith('devel') }
+                            expression { env.BRANCH_NAME.startsWith('release') }
+                            expression { env.BRANCH_NAME.startsWith('hotfix') }
+                        }
                     }
                     steps {
                         echo 'Put here software snapshot publishing steps'
-                    }
-                }
-                stage('Hotfix candidate') {
-                    when {
-                        expression { env.BRANCH_NAME.startsWith('hotfix') }
-                    }
-                    steps {
-                        echo 'Put here software hotfix-candidate publishing steps'
                     }
                 }
                 stage('Release reports') {
@@ -219,7 +253,11 @@ pipeline {
                 }
                 stage('Snapshot reports') {
                     when {
-                        expression { env.BRANCH_NAME.startsWith('devel') }
+                        anyOf {
+                            expression { env.BRANCH_NAME.startsWith('devel') }
+                            expression { env.BRANCH_NAME.startsWith('release') }
+                            expression { env.BRANCH_NAME.startsWith('hotfix') }
+                        }
                     }
                     steps {
                         echo 'Put here reports publishing steps'
