@@ -1,9 +1,11 @@
 # jenkinsfile-starter
+
 Jenkinsfile example and probe project to run in Jenkins.
 
 ## Goals
 
 To get faster feedback, why is failing, in order:
+
 * code doesn't compile
 * test code doesn't compile
 * unit tests are failing
@@ -26,6 +28,26 @@ branch, publishes a hotfix candidate, and can deploy to test and prelive by cond
 `HOTFIX_TO_PRELIVE`; `HOTFIX_TO_DEV` off by default). It never goes live itself - after quick review and test it is
 merged to master, and the master build deploys live and tags.
 
+### Publishing by branch
+
+| Branch     | Release | Snapshot | Release reports | Snapshot reports |
+|------------|:-------:|:--------:|:---------------:|:----------------:|
+| `feature*` |    –    |    –     |        –        |        –         |
+| `develop`  |    –    |    ✓    |        –        |        ✓        |
+| `release*` |    –    |    –     |        –        |        –         |
+| `hotfix*`  |    –    |    –     |        –        |        –         |
+| `master`   |   ✓    |    –     |       ✓        |        –         |
+
+### Deployment by branch and environment
+
+| Branch     | DEV | TEST | PRELIVE | LIVE |
+|------------|:---:|:----:|:-------:|:----:|
+| `feature*` |  –  |  –   |    –    |  –   |
+| `develop`  | ✓  |  ✓  |    –    |  –   |
+| `release*` | ✓  |  ✓  |   ✓    |  –   |
+| `hotfix*`  |  –  |  ✓  |   ✓    |  –   |
+| `master`   |  –  |  –   |    –    |  ✓  |
+
 ### Jenkins plugins
 
 Usually Jenkins preferred/default plugins setup.
@@ -35,7 +57,7 @@ Usually Jenkins preferred/default plugins setup.
 
 ### Jenkins configuration
 
-1. System Admin e-mail address 
+1. System Admin e-mail address
 2. Extended E-mail Notification settings
 3. E-mail Notification settings
 4. Jenkins URL

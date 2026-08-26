@@ -71,6 +71,14 @@ pipeline {
         // builds the same commit over and over. pollSCM asks the SCM every 5 minutes and only
         // triggers when there really are new commits. H spreads the poll across the interval so
         // that all jobs do not hit the SCM in the same second.
+        //
+        // In a MULTIBRANCH pipeline this is redundant and costs more than it gives: the folder
+        // already discovers commits by branch indexing, and this makes every branch job poll the
+        // repository separately on top of that - N branches, N pollers, all against one remote.
+        // The multibranch way is to leave this out and drive builds from either a webhook (best:
+        // instant, no polling at all) or the folder's own "Scan Multibranch Pipeline Triggers".
+        // It is kept here because this Jenkinsfile is also meant to work as a single branch job,
+        // where nothing else would trigger it.
         pollSCM('H/5 * * * *')
     }
 
@@ -86,15 +94,24 @@ pipeline {
         // Two different mechanisms are needed, because they solve two different halves:
         //
         // quietPeriod - the burst that has not started building yet. After a trigger Jenkins
-        // waits this long before starting, and every further commit inside the window folds
-        // into the same build. Ten commits pushed within two minutes become one build.
+        // holds the queue item this long before it becomes buildable, and every further commit
+        // inside the window folds into the same build.
+        //
+        // Both of these are PER JOB, and in a multibranch pipeline every branch is its own job.
+        // A quiet period on one branch does not hold another branch back - their windows count
+        // down at the same time - but it does delay every branch by this much, which is very
+        // visible when several branches are pushed at once. Keep it short: it only has to cover
+        // how long a push burst takes, not how long a build takes. Set it to 0 while testing the
+        // pipeline itself.
         //
         // disableConcurrentBuilds(abortPrevious: true) - the build that is already running.
         // Without it Jenkins starts a second run beside the first whenever an executor is
-        // free, so several intermediate commits build at once. With it the runs are
-        // serialised, and abortPrevious kills the older run the moment a newer one is ready:
-        // the newest change wins and the superseded ones never finish.
-        quietPeriod(120)
+        // free, so several intermediate commits build at once. With it the runs of THIS branch
+        // are serialised, and abortPrevious kills the older run the moment a newer one is ready:
+        // the newest change wins and the superseded ones never finish. Other branches are not
+        // affected - if branches are waiting for each other, that is the executor count, not
+        // this option.
+        quietPeriod(15)
         disableConcurrentBuilds(abortPrevious: true)
     }
 
