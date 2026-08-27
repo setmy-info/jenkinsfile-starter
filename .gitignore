@@ -1,4 +1,6 @@
 .idea
 /nbproject/private/
 jenkinsfile-starter.iml
+claude.session.sh
+claude.session.cmd
 
