@@ -44,7 +44,7 @@ merged to master, and the master build deploys live and tags.
 |------------|:---:|:----:|:-------:|:----:|
 | `feature*` |  –  |  –   |    –    |  –   |
 | `develop`  | ✓  |  ✓  |    –    |  –   |
-| `release*` | ✓  |  ✓  |   ✓    |  –   |
+| `release*` |  –  |  ✓  |   ✓    |  –   |
 | `hotfix*`  |  –  |  ✓  |   ✓    |  –   |
 | `master`   |  –  |  –   |    –    |  ✓  |
 

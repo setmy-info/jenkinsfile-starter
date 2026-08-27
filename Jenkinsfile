@@ -10,6 +10,9 @@ def runCommand(String command) {
 pipeline {
 
     /*
+    version 1.2.0 - release* no longer deploys to DEV: the RELEASE_TO_DEV flag and the release
+                    branch of the 'dev' deploy stage are gone. release* deploys to TEST and
+                    PRELIVE only. develop -> DEV is unchanged.
     version 1.1.0 - pollSCM instead of cron (build on new commits, not on a timer),
                     quietPeriod + disableConcurrentBuilds(abortPrevious: true) so that a burst
                     of commits becomes one build of the newest change,
@@ -131,7 +134,6 @@ pipeline {
         HOTFIX_TO_TEST = 'DEPLOY'
 
         DEVELOPMENT_TO_DEV = 'DEPLOY'
-        RELEASE_TO_DEV = 'DEPLOY'
     }
 
     stages {
@@ -278,16 +280,8 @@ pipeline {
             parallel {
                 stage('dev') {
                     when {
-                        anyOf {
-                            allOf {
-                                environment name: 'DEVELOPMENT_TO_DEV', value: 'DEPLOY'
-                                branch pattern: 'devel.*', comparator: 'REGEXP'
-                            }
-                            allOf {
-                                environment name: 'RELEASE_TO_DEV', value: 'DEPLOY'
-                                branch pattern: 'release.*', comparator: 'REGEXP'
-                            }
-                        }
+                        environment name: 'DEVELOPMENT_TO_DEV', value: 'DEPLOY'
+                        branch pattern: 'devel.*', comparator: 'REGEXP'
                     }
                     steps {
                         echo 'Put here software development installations steps'
@@ -348,7 +342,9 @@ pipeline {
                 branch 'master'
             }
             steps {
-                echo 'Put here taging'
+                echo 'Put here tagging. For example: '
+                echo 'smi-new-tag 1.2.3'
+                echo 'And logic to get tag from source files for example.'
             }
         }
     }
