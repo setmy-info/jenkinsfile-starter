@@ -119,8 +119,9 @@ pipeline {
     }
 
     environment {
-        //Just for example
+        // 1 EXAMPLE : PATH setup example
         //PATH = "/opt/setmy.info/bin:$PATH"
+        // 2 EXAMPLE : Variables usage
         ABC = 'DEF'
         GHI = "$ABC"
 
@@ -140,12 +141,17 @@ pipeline {
         stage('Inspection') {
             parallel {
                 stage('Pre-build') {
+                    /*
+                    Stage to get into build logs pre build existing environment conditions, versions, getting CI build
+                    info into log etc.
+                    */
                     steps {
                         echo "Jenkins node: ${env.NODE_NAME}"
                         echo "Operating system: ${isUnix() ? 'Unix/Linux' : 'Windows'}"
 
                         runCommand 'echo "Hello from command shell"'
 
+                        // 3 EXAMPLE : File based check
                         script {
                             if (!fileExists('README.md')) {
                                 error('README.md missing')
@@ -154,19 +160,24 @@ pipeline {
 
                         echo 'Pre build inspection and precondition check. Put here commands to check, that build tools are installed.'
 
+                        // 4 EXAMPLE : Variables usage vol 2
                         runCommand 'echo "GHI=${GHI}"'
                         echo "Message GHI=${GHI}"
 
+                        // 5 EXAMPLE : Just emulating longer build
                         sleep 5
 
+                        // 6 EXAMPLE : Repeating example
                         retry(count: 7) {
                             runCommand 'echo "Many times, why?"'
                         }
 
+                        // 7 EXAMPLE : Timeout example
                         timeout(time: 10) {
                             runCommand 'echo "What is this time?"'
                         }
 
+                        // 8 EXAMPLE : email sending
                         emailext(
                             subject: "Jenkins job: $JOB_NAME, build: $BUILD_NUMBER",
                             body: "Job: $JOB_NAME, build: $BUILD_NUMBER, url: ${env.BUILD_URL}",
@@ -174,6 +185,9 @@ pipeline {
                         )
                     }
                 }
+                /*
+                Stage to install build required tools. Build dependencies.
+                */
                 stage('Build tools') {
                     steps {
                         echo 'Build tools installation and preparation (setup, config)'
@@ -185,6 +199,9 @@ pipeline {
 
         stage('Preparation') {
             parallel {
+                /*
+                Stage to install language and source, language code dependencies.
+                */
                 stage('Install') {
                     steps {
                         echo 'Preparing the software to be built. Installation commands go here.'
@@ -196,6 +213,9 @@ pipeline {
             }
         }
 
+        /*
+        Stage to build code with with executing all needed steps to measure different type of code quality.
+        */
         stage('Build') {
             steps {
                 echo 'Cleaning command, because in some cases shared directories can have previous build garbage'
@@ -241,6 +261,9 @@ pipeline {
 
         stage('Publish') {
             parallel {
+                /*
+                Stage to push or upload build packages/artifacts to file storage systems.
+                */
                 stage('Release') {
                     when {
                         branch 'master'
@@ -278,6 +301,9 @@ pipeline {
         }
         stage('Deploy') {
             parallel {
+                /*
+                Stages to deploy/install artifacts to different environments.
+                */
                 stage('dev') {
                     when {
                         environment name: 'DEVELOPMENT_TO_DEV', value: 'DEPLOY'
@@ -336,6 +362,9 @@ pipeline {
                 }
             }
         }
+        /*
+        Stage to make SCM tag. As all results are succeeded then tag reflects FULL build success.
+        */
         stage('Tag') {
             when {
                 environment name: 'MASTER_TO_LIVE', value: 'DEPLOY'
@@ -352,6 +381,7 @@ pipeline {
     post {
         always {
             // junit '**/target/*-reports/*.xml'
+            // 9 EXAMPLE : just placeholder for actions after any build.
             runCommand 'echo "Always"'
         }
 
