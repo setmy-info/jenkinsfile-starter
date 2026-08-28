@@ -352,7 +352,7 @@ pipeline {
     post {
         always {
             // junit '**/target/*-reports/*.xml'
-            runCommand 'echo "Allways"'
+            runCommand 'echo "Always"'
         }
 
         success {
