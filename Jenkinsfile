@@ -125,6 +125,8 @@ pipeline {
         ABC = 'DEF'
         GHI = "$ABC"
 
+        SMI_PROFILES = 'ci'
+
         MASTER_TO_LIVE = 'DEPLOY'
 
         RELEASE_TO_PRELIVE = 'DEPLOY'
