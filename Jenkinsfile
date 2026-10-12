@@ -388,7 +388,7 @@ pipeline {
                         echo 'Put here software prelive installations steps'
                     }
                 }
-                stage('draft') {
+                stage('live: draft') {
                     when {
                         environment name: 'DRAFT_TO_LIVE', value: 'DEPLOY'
                         branch 'draft'
@@ -397,7 +397,7 @@ pipeline {
                         echo 'Put here software live draft stage installations steps'
                     }
                 }
-                stage('live') {
+                stage('live: publish') {
                     when {
                         environment name: 'MASTER_TO_LIVE', value: 'DEPLOY'
                         branch 'master'
