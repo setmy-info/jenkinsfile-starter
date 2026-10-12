@@ -10,18 +10,27 @@ def runCommand(String command) {
 pipeline {
 
     /*
+    version 1.3.0 - draft branch added. LIVE gets two stages: live draft stage (DRAFT_TO_LIVE)
+                    and live publish stage (MASTER_TO_LIVE). The draft build is the release: it
+                    publishes the release package to package storage and deploys it to the live
+                    draft stage. Users accept it by merging draft to master. The master build
+                    still builds and tests, but publishes nothing - it promotes the already
+                    published package from the live draft stage to the live publish stage.
+                    Releases are immutable: what goes live is the very package that was
+                    reviewed, never a rebuild. Software without drafting keeps the 1.2.0 flow,
+                    where master releases and publishes - see "without draft" below.
     version 1.2.0 - release* no longer deploys to DEV: the RELEASE_TO_DEV flag and the release
                     branch of the 'dev' deploy stage are gone. release* deploys to TEST and
                     PRELIVE only. develop -> DEV is unchanged.
     version 1.1.0 - pollSCM instead of cron (build on new commits, not on a timer),
                     quietPeriod + disableConcurrentBuilds(abortPrevious: true) so that a burst
                     of commits becomes one build of the newest change,
-                    elease* added to Publish/Snapshot: develop, release* and hotfix* all publish
+                    release* added to Publish/Snapshot: develop, release* and hotfix* all publish
                     a candidate of unknown quality
                     TEST environment renamed to the ADR-0041 canonical name
     version 1.0.1 - fileExists precondition check now actually gates (was a discarded boolean)
 
-    Git branches flow: develop -> feature -> develop -> release -> master
+    Git branches flow: develop -> feature -> develop -> release -> draft -> master
 
     Building only the newest change
     Every branch is polled for new commits, and commits arrive in bursts. Building each one of
@@ -39,32 +48,57 @@ pipeline {
     5. Go-No go event: Positive release and release testing decision by DEV and TEST environments
     6. Make release branch - built on new commits, only the newest change is built. Code freeze period started.
     7. Go-No go event: Positive release decision by DEV, TEST, PRELIVE environments
-    8. Merge release branch to master - built on new commits, only the newest change is built. Code freeze period ended.
-    9. Found a bug in production
-    10. hotfix branch from master
-    11. Enhancements in hotfix branch - built on new commits, only the newest change is built
-    12. Go-No go event: the hotfix is deployed to TEST and PRELIVE, where QA validates and
-        verifies it. The decision taken there is either "this is verified" - go to step 15 - or
-        "this needs more testing" - go to step 13.
-    13. Hotfix merged to develop, when the decision at step 12 asked for more testing.
-    14. The development flow continues from step 4, so the fix now also reaches DEV and is
+    8. Merge release branch to draft - built on new commits, the release package is published to
+       package storage and deployed to the live draft stage. Users review it on the live system,
+       nobody else sees it yet.
+    9. Go-No go event: users accept the draft. Not accepted - fix in release with a new version
+       (a published release is immutable) and go to step 8 again.
+    10. Merge draft to master (fast-forward, so master is exactly the reviewed commit) - built and
+        tested, the reviewed package is promoted from live draft stage to live publish stage, tagged. Code
+        freeze period ended.
+    11. Found a bug in production
+    12. hotfix branch from master
+    13. Enhancements in hotfix branch - built on new commits, only the newest change is built
+    14. Go-No go event: the hotfix is deployed to TEST and PRELIVE, where QA validates and
+        verifies it. The decision taken there is either "this is verified" - go to step 17 - or
+        "this needs more testing" - go to step 15.
+    15. Hotfix merged to develop, when the decision at step 14 asked for more testing.
+    16. The development flow continues from step 4, so the fix now also reaches DEV and is
         tested again together with everything else on develop.
-    15. Hotfix merged to master. master is what deploys live and tags.
+    17. Hotfix merged to draft, reviewed there, and draft merged to master (steps 8-10). master is
+        what deploys live and tags.
 
     Automatic deployments to environments: every deployment below is triggered by the build
     itself and gated only by the *_TO_* flags in the environment block. There is no manual
-    approval step (no input step) anywhere in this pipeline.
+    approval step (no input step) anywhere in this pipeline. The user acceptance of a draft is
+    not an input step either: it is the merge of draft to master.
+
+    draft - releasing to LIVE in two stages. The live draft stage is LIVE, only not visible to
+    everyone yet: reviewers see it, users accept it there. The live publish stage is what
+    everyone sees. Mostly for web, PWA, FE and CMS kind of projects. The draft build publishes
+    the release package, once; from then on that package is only moved, never built again. How
+    the package gets from the live draft stage to the live publish stage (install it again from
+    package storage, move or switch it on the target, ...) is up to the project. The live draft
+    stage holds one change: while it waits for acceptance, the next one waits behind it or is
+    accepted together with it.
+
+    without draft - software that is not drafted has no draft branch, the flow is release ->
+    master and master is the release, as in 1.2.0. The build shifts back to master: Release
+    and Release reports run on branch 'master' instead of 'draft', DRAFT_TO_LIVE is not used,
+    and master publishes the release and deploys it to the live publish stage. Steps 8-10
+    become one step: merge release to master. Hotfixes are merged to master directly.
 
     hotfix* - branched from master, one fix, quick review, then TEST and PRELIVE, where
     QA validates and verifies it. It deliberately does not deploy to DEV: DEV is the
     development integration target and a hotfix integrates nothing. If QA decides the fix
     needs more testing it is merged to develop, and it reaches DEV through the normal
-    development flow from there. A hotfix is merged to master to go live, and master is
-    what deploys live and tags - a hotfix never goes live directly.
+    development flow from there. A hotfix is merged to draft and draft to master to go live,
+    and master is what deploys live and tags - a hotfix never goes live directly.
 
     No pull request builds.
 
-    [5 branches] x [4 environments]. feature* deploys nowhere: it is built and tested only.
+    [6 branches] x [4 environments, LIVE in live draft and live publish stages]. feature*
+    deploys nowhere: it is built and tested only.
     */
 
     agent any
@@ -128,6 +162,7 @@ pipeline {
         SMI_PROFILES = 'ci'
 
         MASTER_TO_LIVE = 'DEPLOY'
+        DRAFT_TO_LIVE = 'DEPLOY'
 
         RELEASE_TO_PRELIVE = 'DEPLOY'
         HOTFIX_TO_PRELIVE = 'DEPLOY'
@@ -268,7 +303,7 @@ pipeline {
                 */
                 stage('Release') {
                     when {
-                        branch 'master'
+                        branch 'draft'
                         // changeset "**/file/to/be/changed"
                     }
                     steps {
@@ -285,7 +320,7 @@ pipeline {
                 }
                 stage('Release reports') {
                     when {
-                        branch 'master'
+                        branch 'draft'
                     }
                     steps {
                         echo 'Put here reports publishing steps'
@@ -353,13 +388,22 @@ pipeline {
                         echo 'Put here software prelive installations steps'
                     }
                 }
+                stage('draft') {
+                    when {
+                        environment name: 'DRAFT_TO_LIVE', value: 'DEPLOY'
+                        branch 'draft'
+                    }
+                    steps {
+                        echo 'Put here software live draft stage installations steps'
+                    }
+                }
                 stage('live') {
                     when {
                         environment name: 'MASTER_TO_LIVE', value: 'DEPLOY'
                         branch 'master'
                     }
                     steps {
-                        echo 'Put here software production installations steps'
+                        echo 'Put here software live publish stage installations steps: the release published by draft'
                     }
                 }
             }
