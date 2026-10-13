@@ -56,6 +56,63 @@ as in 1.2.0. The build shifts back to master - Release and Release reports run o
 `DRAFT_TO_LIVE` is not used, and master publishes the release and deploys it to the live publish stage. In the tables
 below the `draft` row then moves to `master`, and hotfixes are merged to master directly.
 
+### Branching model
+
+Commit labels show what the build of that commit publishes and where it deploys, with the default switches. A
+rejected draft is fixed in the release branch with a new version and merged to `draft` again. A hotfix goes through
+`draft` like a release; when QA asks for more testing, it is merged to `develop` instead.
+
+```mermaid
+---
+config:
+  gitGraph:
+    mainBranchName: master
+    showCommitLabel: true
+---
+gitGraph
+    commit id: "1.0.0" tag: "1.0.0"
+    branch draft order: 1
+    checkout master
+    branch develop order: 4
+    commit id: "snapshot: DEV, TEST draft"
+    branch "feature/ABC-1234-some-explanation" order: 5
+    commit id: "build and test only"
+    commit id: "build and test only "
+    checkout develop
+    merge "feature/ABC-1234-some-explanation" id: "snapshot: DEV, TEST draft "
+    branch "release/1.1.0" order: 3
+    commit id: "1.1.0: TEST draft, PRELIVE"
+    checkout draft
+    merge "release/1.1.0" id: "release 1.1.0: LIVE draft (rejected)"
+    checkout "release/1.1.0"
+    commit id: "1.1.1: TEST draft, PRELIVE"
+    checkout draft
+    merge "release/1.1.0" id: "release 1.1.1: LIVE draft (accepted)"
+    checkout master
+    merge draft id: "1.1.1: LIVE publish" tag: "1.1.1"
+    branch "hotfix/ABC-1235-some-explanation" order: 2
+    commit id: "1.1.2: TEST draft, PRELIVE"
+    checkout draft
+    merge "hotfix/ABC-1235-some-explanation" id: "release 1.1.2: LIVE draft (accepted)"
+    checkout master
+    merge draft id: "1.1.2: LIVE publish" tag: "1.1.2"
+    checkout develop
+    commit id: "snapshot: DEV, TEST draft  "
+    branch "release/1.2.0" order: 3
+    commit id: "1.2.0: TEST draft, PRELIVE"
+    checkout draft
+    merge "release/1.2.0" id: "release 1.2.0: LIVE draft (waiting)"
+    checkout develop
+    commit id: "snapshot: DEV, TEST draft   "
+    checkout draft
+    commit id: "  "
+    checkout master
+    commit id: " "
+```
+
+Without drafting, the `draft` lane is missing: `release*` and `hotfix*` are merged to `master`, and the master build
+publishes the release and deploys it to the LIVE publish stage.
+
 ### Publishing by branch
 
 | Branch     | Release | Snapshot | Release reports | Snapshot reports |
