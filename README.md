@@ -140,6 +140,8 @@ In software built without drafting, the `draft` branch is missing and `master` t
 
 In software built without drafting, the `draft` branch is missing and `master` deploys directly to the LIVE publish
 stage. There is no LIVE draft stage. In TEST draft will be published manually or with other tools.
+In Git repositories of software without drafting, the TEST and LIVE draft stage columns are merged into their publish
+stage columns with OR: a branch deploys to the publish stage if either of the two columns has ✓.
 
 ### Jenkins plugins
 
