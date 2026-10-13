@@ -25,9 +25,9 @@ Release branch can go test, prelive by conditional switches.
 Development branch is optional. Mostly Jenkinsfile is planned for trunk based development scenarios.
 
 Hotfix branch (`hotfix*`, branched from master) is supported since 1.1.0: it runs the full build/test path like every
-branch, publishes a hotfix candidate, and can deploy to test and prelive by conditional switches (`HOTFIX_TO_TEST`,
-`HOTFIX_TO_PRELIVE`; `HOTFIX_TO_DEV` off by default). It never goes live itself - after quick review and test it is
-merged to draft and draft to master, and the master build deploys live and tags.
+branch, publishes a hotfix candidate, and can deploy to test and prelive by conditional switches
+(`HOTFIX_TO_TEST_DRAFT`, `HOTFIX_TO_PRELIVE`; `HOTFIX_TO_DEV` off by default). It never goes live itself - after quick
+review and test it is merged to draft and draft to master, and the master build deploys live and tags.
 
 Draft branch (`draft`) is supported since 1.3.0. Mostly for web, PWA, FE and CMS projects. Flow is
 `release* -> draft -> master`, and releasing to LIVE goes in two stages:
@@ -47,8 +47,9 @@ with it.
 
 TEST is set up as much as possible like LIVE, so that every aspect of LIVE can be tested there. It has the same two
 stages, test draft stage and test publish stage. Every TEST deployment (`develop`, `release*`, `hotfix*`) goes to the
-test draft stage, gated by the `*_TO_TEST` switches. The pipeline never deploys to the test publish stage: the draft
-is published there manually or with other tools.
+test draft stage, gated by the `*_TO_TEST_DRAFT` switches. The test publish stage is reserved: its
+`*_TO_TEST_PUBLISH` switches are commented out in the environment block, so the pipeline skips it and the draft is
+published there manually or with other tools. Uncommenting a switch turns the test publish stage on for that branch.
 
 Software without drafting has no `draft` branch: the flow is `release* -> master`, and master releases and publishes,
 as in 1.2.0. The build shifts back to master - Release and Release reports run on `master` instead of `draft`,

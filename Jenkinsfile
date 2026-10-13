@@ -21,7 +21,8 @@ pipeline {
                     where master releases and publishes - see "without draft" below.
                     TEST gets the same two stages, test draft stage and test publish stage, so
                     that TEST is set up as much as possible like LIVE - see "TEST" below. The
-                    pipeline deploys only to the test draft stage.
+                    pipeline deploys only to the test draft stage; the test publish stage is
+                    reserved, its *_TO_TEST_PUBLISH flags are commented out.
     version 1.2.0 - release* no longer deploys to DEV: the RELEASE_TO_DEV flag and the release
                     branch of the 'dev' deploy stage are gone. release* deploys to TEST and
                     PRELIVE only. develop -> DEV is unchanged.
@@ -87,9 +88,10 @@ pipeline {
 
     TEST - set up as much as possible like LIVE, so that every aspect of LIVE can be tested
     there, the move from draft stage to publish stage included. Every TEST deployment (develop,
-    release*, hotfix*) deploys to the test draft stage, gated by the *_TO_TEST flags. The
-    pipeline never deploys to the test publish stage: the draft is published there manually or
-    with other tools.
+    release*, hotfix*) deploys to the test draft stage, gated by the *_TO_TEST_DRAFT flags. The
+    test publish stage is reserved: its *_TO_TEST_PUBLISH flags are commented out in the
+    environment block, so the pipeline skips it and the draft is published there manually or
+    with other tools. Uncommenting a flag switches the test publish stage on for that branch.
 
     without draft - software that is not drafted has no draft branch, the flow is release ->
     master and master is the release, as in 1.2.0. The build shifts back to master: Release
@@ -176,9 +178,13 @@ pipeline {
         RELEASE_TO_PRELIVE = 'DEPLOY'
         HOTFIX_TO_PRELIVE = 'DEPLOY'
 
-        DEVELOPMENT_TO_TEST = 'DEPLOY'
-        RELEASE_TO_TEST = 'DEPLOY'
-        HOTFIX_TO_TEST = 'DEPLOY'
+        DEVELOPMENT_TO_TEST_DRAFT = 'DEPLOY'
+        RELEASE_TO_TEST_DRAFT = 'DEPLOY'
+        HOTFIX_TO_TEST_DRAFT = 'DEPLOY'
+
+        //DEVELOPMENT_TO_TEST_PUBLISH = 'DEPLOY'
+        //RELEASE_TO_TEST_PUBLISH = 'DEPLOY'
+        //HOTFIX_TO_TEST_PUBLISH = 'DEPLOY'
 
         DEVELOPMENT_TO_DEV = 'DEPLOY'
     }
@@ -363,21 +369,42 @@ pipeline {
                     when {
                         anyOf {
                             allOf {
-                                environment name: 'DEVELOPMENT_TO_TEST', value: 'DEPLOY'
+                                environment name: 'DEVELOPMENT_TO_TEST_DRAFT', value: 'DEPLOY'
                                 branch pattern: 'devel.*', comparator: 'REGEXP'
                             }
                             allOf {
-                                environment name: 'RELEASE_TO_TEST', value: 'DEPLOY'
+                                environment name: 'RELEASE_TO_TEST_DRAFT', value: 'DEPLOY'
                                 branch pattern: 'release.*', comparator: 'REGEXP'
                             }
                             allOf {
-                                environment name: 'HOTFIX_TO_TEST', value: 'DEPLOY'
+                                environment name: 'HOTFIX_TO_TEST_DRAFT', value: 'DEPLOY'
                                 branch pattern: 'hotfix.*', comparator: 'REGEXP'
                             }
                         }
                     }
                     steps {
                         echo 'Put here software test draft stage installations steps'
+                    }
+                }
+                stage('test: publish') {
+                    when {
+                        anyOf {
+                            allOf {
+                                environment name: 'DEVELOPMENT_TO_TEST_PUBLISH', value: 'DEPLOY'
+                                branch pattern: 'devel.*', comparator: 'REGEXP'
+                            }
+                            allOf {
+                                environment name: 'RELEASE_TO_TEST_PUBLISH', value: 'DEPLOY'
+                                branch pattern: 'release.*', comparator: 'REGEXP'
+                            }
+                            allOf {
+                                environment name: 'HOTFIX_TO_TEST_PUBLISH', value: 'DEPLOY'
+                                branch pattern: 'hotfix.*', comparator: 'REGEXP'
+                            }
+                        }
+                    }
+                    steps {
+                        echo 'Put here software test publish stage installations steps'
                     }
                 }
                 stage('prelive') {
