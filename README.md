@@ -45,6 +45,11 @@ live publish stage is up to the project. Every change, hotfixes included, goes t
 live draft stage holds one change: while it waits for acceptance, the next one waits behind it or is accepted together
 with it.
 
+TEST is set up as much as possible like LIVE, so that every aspect of LIVE can be tested there. It has the same two
+stages, test draft stage and test publish stage. Every TEST deployment (`develop`, `release*`, `hotfix*`) goes to the
+test draft stage, gated by the `*_TO_TEST` switches. The pipeline never deploys to the test publish stage: the draft
+is published there manually or with other tools.
+
 Software without drafting has no `draft` branch: the flow is `release* -> master`, and master releases and publishes,
 as in 1.2.0. The build shifts back to master - Release and Release reports run on `master` instead of `draft`,
 `DRAFT_TO_LIVE` is not used, and master publishes the release and deploys it to the live publish stage. In the tables
@@ -66,17 +71,17 @@ In software built without drafting, the `draft` branch is missing and `master` t
 
 ### Deployment by branch and environment
 
-| Branch     | DEV | TEST | PRELIVE | LIVE draft stage | LIVE publish stage |
-|------------|:---:|:----:|:-------:|:----------------:|:------------------:|
-| `feature*` |  –  |  –   |    –    |        –         |         –          |
-| `develop`  | ✓  |  ✓  |    –    |        –         |         –          |
-| `release*` |  –  |  ✓  |   ✓    |        –         |         –          |
-| `hotfix*`  |  –  |  ✓  |   ✓    |        –         |         –          |
-| `draft`    |  –  |  –   |    –    |        ✓        |         –          |
-| `master`   |  –  |  –   |    –    |        –         |         ✓         |
+| Branch     | DEV | TEST draft stage | TEST publish stage | PRELIVE | LIVE draft stage | LIVE publish stage |
+|------------|:---:|:----------------:|:------------------:|:-------:|:----------------:|:------------------:|
+| `feature*` |  –  |        –         |         –          |    –    |        –         |         –          |
+| `develop`  | ✓  |        ✓        |         –          |    –    |        –         |         –          |
+| `release*` |  –  |        ✓        |         –          |   ✓    |        –         |         –          |
+| `hotfix*`  |  –  |        ✓        |         –          |   ✓    |        –         |         –          |
+| `draft`    |  –  |        –         |         –          |    –    |        ✓        |         –          |
+| `master`   |  –  |        –         |         –          |    –    |        –         |         ✓         |
 
 In software built without drafting, the `draft` branch is missing and `master` deploys directly to the LIVE publish
-stage. There is no LIVE draft stage.
+stage. There is no LIVE draft stage. In TEST draft will be published manually or with other tools.
 
 ### Jenkins plugins
 

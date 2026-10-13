@@ -19,6 +19,9 @@ pipeline {
                     Releases are immutable: what goes live is the very package that was
                     reviewed, never a rebuild. Software without drafting keeps the 1.2.0 flow,
                     where master releases and publishes - see "without draft" below.
+                    TEST gets the same two stages, test draft stage and test publish stage, so
+                    that TEST is set up as much as possible like LIVE - see "TEST" below. The
+                    pipeline deploys only to the test draft stage.
     version 1.2.0 - release* no longer deploys to DEV: the RELEASE_TO_DEV flag and the release
                     branch of the 'dev' deploy stage are gone. release* deploys to TEST and
                     PRELIVE only. develop -> DEV is unchanged.
@@ -82,6 +85,12 @@ pipeline {
     stage holds one change: while it waits for acceptance, the next one waits behind it or is
     accepted together with it.
 
+    TEST - set up as much as possible like LIVE, so that every aspect of LIVE can be tested
+    there, the move from draft stage to publish stage included. Every TEST deployment (develop,
+    release*, hotfix*) deploys to the test draft stage, gated by the *_TO_TEST flags. The
+    pipeline never deploys to the test publish stage: the draft is published there manually or
+    with other tools.
+
     without draft - software that is not drafted has no draft branch, the flow is release ->
     master and master is the release, as in 1.2.0. The build shifts back to master: Release
     and Release reports run on branch 'master' instead of 'draft', DRAFT_TO_LIVE is not used,
@@ -97,7 +106,7 @@ pipeline {
 
     No pull request builds.
 
-    [6 branches] x [4 environments, LIVE in live draft and live publish stages]. feature*
+    [6 branches] x [4 environments, TEST and LIVE in draft and publish stages]. feature*
     deploys nowhere: it is built and tested only.
     */
 
@@ -350,7 +359,7 @@ pipeline {
                         echo 'Put here software development installations steps'
                     }
                 }
-                stage('test') {
+                stage('test: draft') {
                     when {
                         anyOf {
                             allOf {
@@ -368,7 +377,7 @@ pipeline {
                         }
                     }
                     steps {
-                        echo 'Put here software test installations steps'
+                        echo 'Put here software test draft stage installations steps'
                     }
                 }
                 stage('prelive') {
