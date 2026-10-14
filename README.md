@@ -1,6 +1,14 @@
 # jenkinsfile-starter
 
-Jenkinsfile example and probe project to run in Jenkins.
+A Jenkinsfile template, example, and probe project for running pipelines in Jenkins.
+
+The repository contains a Jenkinsfile that is an example and a reusable CI pipeline **template** for projects
+written in any programming language.
+
+The template contains placeholders that can be replaced and filled with all project-specific needs, requirements, tools.
+
+Changes with minimal changes to get it running in Jenkins fast – do as minimal changes as possible to get it done and
+running.
 
 ## Goals
 
@@ -29,7 +37,7 @@ branch, publishes a hotfix candidate, and can deploy to test and prelive by cond
 (`HOTFIX_TO_TEST_DRAFT`, `HOTFIX_TO_PRELIVE`; `HOTFIX_TO_DEV` off by default). It never goes live itself - after quick
 review and test it is merged to draft and draft to master, and the master build deploys live and tags.
 
-Draft branch (`draft`) is supported since 1.3.0. Mostly for web, PWA, FE and CMS projects. Flow is
+Draft branch (`draft`) is supported since 1.3.0. Mostly for web, PWA, FE, and CMS projects. Flow is
 `release* -> draft -> master`, and releasing to LIVE goes in two stages:
 
 * live draft stage (`DRAFT_TO_LIVE`) - LIVE, but seen only by reviewers. The draft build is the release: it builds,
