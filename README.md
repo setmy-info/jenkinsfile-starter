@@ -165,6 +165,22 @@ Usually Jenkins preferred/default plugins setup.
 3. E-mail Notification settings
 4. Jenkins URL
 
+### Notifications
+
+The pipeline mails the result to one hard coded address, `SMI_MAIL_TO` in the `environment` block, on success,
+on unstable and on failure, the failure with the console log attached and compressed. It is a fixed `to:` and
+not `DevelopersRecipientProvider`, so a build reports even when the committer has no address in Jenkins or the
+push came from CI itself. Replace `example@example.com` with the address of the project.
+
+``` groovy
+environment {
+    SMI_MAIL_TO = 'example@example.com'
+}
+```
+
+Mail needs the Email Extension Plugin and an SMTP server under *Manage Jenkins -> System -> Extended E-mail
+Notification*. Without the server, the mail step is the only red thing in an otherwise green build.
+
 ### Tips and tricks
 
 1. Environment variables and other variables usage

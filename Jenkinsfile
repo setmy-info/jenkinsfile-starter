@@ -172,6 +172,8 @@ pipeline {
 
         SMI_PROFILES = 'ci'
 
+        SMI_MAIL_TO = 'has@gintra'
+
         MASTER_TO_LIVE = 'DEPLOY'
         DRAFT_TO_LIVE = 'DEPLOY'
 
@@ -229,11 +231,11 @@ pipeline {
                             runCommand 'echo "What is this time?"'
                         }
 
-                        // 8 EXAMPLE : email sending
+                        // 8 EXAMPLE : email sending to a hard coded address
                         emailext(
+                            to: "${SMI_MAIL_TO}",
                             subject: "Jenkins job: $JOB_NAME, build: $BUILD_NUMBER",
-                            body: "Job: $JOB_NAME, build: $BUILD_NUMBER, url: ${env.BUILD_URL}",
-                            recipientProviders: [[$class: 'DevelopersRecipientProvider']]
+                            body: "Job: $JOB_NAME, build: $BUILD_NUMBER, url: ${env.BUILD_URL}"
                         )
                     }
                 }
@@ -469,17 +471,27 @@ pipeline {
 
         success {
             emailext (
+                to: "${SMI_MAIL_TO}",
                 subject: "Jenkins job: $JOB_NAME, build: $BUILD_NUMBER type: SUCCESSFUL",
-                body: "Job: $JOB_NAME, build: $BUILD_NUMBER, url: ${env.BUILD_URL}, git: ${env.GIT_URL}, branch: ${env.GIT_BRANCH} SUCCESSFUL post step",
-                recipientProviders: [[$class: 'DevelopersRecipientProvider']]
+                body: "Job: $JOB_NAME, build: $BUILD_NUMBER, url: ${env.BUILD_URL}, git: ${env.GIT_URL}, branch: ${env.GIT_BRANCH} SUCCESSFUL post step"
+            )
+        }
+
+        unstable {
+            emailext (
+                to: "${SMI_MAIL_TO}",
+                subject: "Jenkins job: $JOB_NAME, build: $BUILD_NUMBER type: UNSTABLE",
+                body: "Job: $JOB_NAME, build: $BUILD_NUMBER, url: ${env.BUILD_URL}, git: ${env.GIT_URL}, branch: ${env.GIT_BRANCH} UNSTABLE post step"
             )
         }
 
         failure {
             emailext (
+                to: "${SMI_MAIL_TO}",
                 subject: "Jenkins job: $JOB_NAME, build: $BUILD_NUMBER type: FAILED",
                 body: "Job: $JOB_NAME, build: $BUILD_NUMBER, url: ${env.BUILD_URL}, git: ${env.GIT_URL}, branch: ${env.GIT_BRANCH}  FAILED post step",
-                recipientProviders: [[$class: 'DevelopersRecipientProvider']]
+                attachLog: true,
+                compressLog: true
             )
         }
     }
