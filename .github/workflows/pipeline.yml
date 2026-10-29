@@ -1,0 +1,332 @@
+# GitHub Actions port of the Jenkinsfile, kept 1:1 with it: the same stages, the same branch
+# conditions and the same *_TO_* switches. The Jenkinsfile header and README.md describe the
+# branching model, the draft and publish stages and the switches; that is not repeated here.
+#
+# Jenkinsfile -> GitHub Actions
+#   pollSCM                                  on: push, every branch. No pull request builds, no tag builds.
+#   disableConcurrentBuilds(abortPrevious)   concurrency per branch, cancel-in-progress. quietPeriod has no
+#                                            equivalent: cancel-in-progress already keeps only the newest run.
+#   agent any                                runs-on. Deploying to own machines needs a self-hosted runner.
+#   runCommand (sh/bat)                      defaults.run.shell: bash, also on Windows runners.
+#   stage, parallel                          one job per stage; jobs needing the same jobs run in parallel.
+#   environment { }                          env below. A job-level if cannot read env, so the Pre-build job
+#                                            hands the switches on as outputs, and the jobs read those.
+#   when { }                                 job if. A skipped job shows as skipped, like a skipped stage.
+#   post { }                                 the Post job, which always runs last.
+#   one workspace for all stages             every job checks out on its own; pass build output on with
+#                                            actions/upload-artifact and actions/download-artifact.
+
+name: Pipeline
+
+on:
+  push:
+    branches:
+      - '**'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash
+
+env:
+  # 1 EXAMPLE : PATH setup example: echo "/opt/setmy.info/bin" >> "$GITHUB_PATH" in a step
+  # 2 EXAMPLE : Variables usage
+  ABC: 'DEF'
+
+  SMI_PROFILES: 'ci'
+
+  SMI_MAIL_TO: 'has@gintra'
+
+  MASTER_TO_LIVE: 'DEPLOY'
+  DRAFT_TO_LIVE: 'DEPLOY'
+
+  RELEASE_TO_PRELIVE: 'DEPLOY'
+  HOTFIX_TO_PRELIVE: 'DEPLOY'
+
+  DEVELOPMENT_TO_TEST_DRAFT: 'DEPLOY'
+  RELEASE_TO_TEST_DRAFT: 'DEPLOY'
+  HOTFIX_TO_TEST_DRAFT: 'DEPLOY'
+
+  #DEVELOPMENT_TO_TEST_PUBLISH: 'DEPLOY'
+  #RELEASE_TO_TEST_PUBLISH: 'DEPLOY'
+  #HOTFIX_TO_TEST_PUBLISH: 'DEPLOY'
+
+  DEVELOPMENT_TO_DEV: 'DEPLOY'
+
+jobs:
+
+  # Inspection
+
+  pre-build:
+    name: 'Inspection: Pre-build'
+    runs-on: ubuntu-latest
+    outputs:
+      MASTER_TO_LIVE: ${{ env.MASTER_TO_LIVE }}
+      DRAFT_TO_LIVE: ${{ env.DRAFT_TO_LIVE }}
+      RELEASE_TO_PRELIVE: ${{ env.RELEASE_TO_PRELIVE }}
+      HOTFIX_TO_PRELIVE: ${{ env.HOTFIX_TO_PRELIVE }}
+      DEVELOPMENT_TO_TEST_DRAFT: ${{ env.DEVELOPMENT_TO_TEST_DRAFT }}
+      RELEASE_TO_TEST_DRAFT: ${{ env.RELEASE_TO_TEST_DRAFT }}
+      HOTFIX_TO_TEST_DRAFT: ${{ env.HOTFIX_TO_TEST_DRAFT }}
+      DEVELOPMENT_TO_TEST_PUBLISH: ${{ env.DEVELOPMENT_TO_TEST_PUBLISH }}
+      RELEASE_TO_TEST_PUBLISH: ${{ env.RELEASE_TO_TEST_PUBLISH }}
+      HOTFIX_TO_TEST_PUBLISH: ${{ env.HOTFIX_TO_TEST_PUBLISH }}
+      DEVELOPMENT_TO_DEV: ${{ env.DEVELOPMENT_TO_DEV }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - run: 'echo "Runner: ${RUNNER_NAME}"'
+      - run: 'echo "Operating system: ${RUNNER_OS}"'
+
+      - run: echo "Hello from command shell"
+
+      # 3 EXAMPLE : File based check
+      - run: test -f README.md || { echo 'README.md missing'; exit 1; }
+
+      - run: echo 'Pre build inspection and precondition check. Put here commands to check, that build tools are installed.'
+
+      # 4 EXAMPLE : Variables usage vol 2
+      - env:
+          GHI: ${{ env.ABC }}
+        run: |
+          echo "GHI=${GHI}"
+          echo "Message GHI=${GHI}"
+
+      # 5 EXAMPLE : Just emulating longer build
+      - run: sleep 5
+
+      # 6 EXAMPLE : Repeating example
+      - run: |
+          for attempt in 1 2 3 4 5 6 7; do
+              echo "Many times, why?" && break
+          done
+
+      # 7 EXAMPLE : Timeout example
+      - timeout-minutes: 10
+        run: echo "What is this time?"
+
+      # 8 EXAMPLE : email sending
+      - run: 'echo "Put here e-mail to ${SMI_MAIL_TO}: Workflow ${GITHUB_WORKFLOW}, run ${GITHUB_RUN_NUMBER}, url ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"'
+
+  build-tools:
+    name: 'Inspection: Build tools'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - run: echo 'Build tools installation and preparation (setup, config)'
+      - run: echo "Hello stage B"
+
+  # Preparation
+
+  install:
+    name: 'Preparation: Install'
+    needs: [pre-build, build-tools]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - run: |
+          echo 'Preparing the software to be built. Installation commands go here.'
+          echo 'npm install'
+          echo 'Put here build configuration commands'
+          echo './config'
+
+  # Build
+
+  build:
+    name: 'Build'
+    needs: [install]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - run: |
+          echo 'Cleaning command, because in some cases shared directories can have previous build garbage'
+          echo 'mvn clean'
+
+          echo 'Put here resource copy commands'
+          echo 'command to prepare files'
+
+          echo 'Put here compilation commands. Can be omitted.'
+          echo 'mvn compile -Pci'
+          echo 'mvn test-compile -Pci'
+
+          echo 'Put here unit tests'
+          echo 'mvn test -Pci'
+
+          echo 'Put here integration tests. Previous steps can be merged here,.'
+          echo 'mvn verify -Pci'
+          echo 'Or just: mvn clean verify -Pci (without previous)'
+
+          echo 'Put here mutation tests'
+          echo 'mvn org.pitest:pitest-maven:mutationCoverage'
+
+          echo 'Put here reporting builds steps can include (unit tests coverage, mutation test coverage, findbugs, vuln. checks, )'
+          echo 'Containing here findbug/stopbug, check style, dependencies vulnreability checks, docs gen, etc'
+          echo 'mvn site:site -Pci'
+
+          echo 'Put here site deploy'
+          echo 'mvn site:deploy -Pci'
+
+          echo 'Put here e2e tests'
+          echo 'mvn verify -Pe2e -Pci'
+
+          echo 'Put here system tests'
+          echo 'Put here acceptance tests'
+
+          echo 'Put here packaging'
+          echo 'mvn package -DskipTests -DskipITs -Pci'
+
+          echo 'Put here local publishing'
+          echo 'mvn deploy -DskipTests -DskipITs -Pci'
+
+  # Publish
+
+  release:
+    name: 'Publish: Release'
+    needs: [build]
+    if: github.ref_name == 'draft'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - run: echo 'Put here software release steps'
+
+  snapshot:
+    name: 'Publish: Snapshot'
+    needs: [build]
+    if: startsWith(github.ref_name, 'devel')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - run: echo 'Put here software snapshot publishing steps'
+
+  release-reports:
+    name: 'Publish: Release reports'
+    needs: [build]
+    if: github.ref_name == 'draft'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - run: echo 'Put here reports publishing steps'
+
+  snapshot-reports:
+    name: 'Publish: Snapshot reports'
+    needs: [build]
+    if: startsWith(github.ref_name, 'devel')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - run: echo 'Put here reports publishing steps'
+
+  # Deploy - !cancelled() && !failure(): run after the Publish jobs even when they were skipped
+
+  dev:
+    name: 'Deploy: dev'
+    needs: [pre-build, build, release, snapshot, release-reports, snapshot-reports]
+    if: >-
+      !cancelled() && !failure() &&
+      needs.pre-build.outputs.DEVELOPMENT_TO_DEV == 'DEPLOY' && startsWith(github.ref_name, 'devel')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - run: echo 'Put here software development installations steps'
+
+  test-draft:
+    name: 'Deploy: test: draft'
+    needs: [pre-build, build, release, snapshot, release-reports, snapshot-reports]
+    if: >-
+      !cancelled() && !failure() && (
+        (needs.pre-build.outputs.DEVELOPMENT_TO_TEST_DRAFT == 'DEPLOY' && startsWith(github.ref_name, 'devel')) ||
+        (needs.pre-build.outputs.RELEASE_TO_TEST_DRAFT == 'DEPLOY' && startsWith(github.ref_name, 'release')) ||
+        (needs.pre-build.outputs.HOTFIX_TO_TEST_DRAFT == 'DEPLOY' && startsWith(github.ref_name, 'hotfix'))
+      )
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - run: echo 'Put here software test draft stage installations steps'
+
+  test-publish:
+    name: 'Deploy: test: publish'
+    needs: [pre-build, build, release, snapshot, release-reports, snapshot-reports]
+    if: >-
+      !cancelled() && !failure() && (
+        (needs.pre-build.outputs.DEVELOPMENT_TO_TEST_PUBLISH == 'DEPLOY' && startsWith(github.ref_name, 'devel')) ||
+        (needs.pre-build.outputs.RELEASE_TO_TEST_PUBLISH == 'DEPLOY' && startsWith(github.ref_name, 'release')) ||
+        (needs.pre-build.outputs.HOTFIX_TO_TEST_PUBLISH == 'DEPLOY' && startsWith(github.ref_name, 'hotfix'))
+      )
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - run: echo 'Put here software test publish stage installations steps'
+
+  prelive:
+    name: 'Deploy: prelive'
+    needs: [pre-build, build, release, snapshot, release-reports, snapshot-reports]
+    if: >-
+      !cancelled() && !failure() && (
+        (needs.pre-build.outputs.RELEASE_TO_PRELIVE == 'DEPLOY' && startsWith(github.ref_name, 'release')) ||
+        (needs.pre-build.outputs.HOTFIX_TO_PRELIVE == 'DEPLOY' && startsWith(github.ref_name, 'hotfix'))
+      )
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - run: echo 'Put here software prelive installations steps'
+
+  live-draft:
+    name: 'Deploy: live: draft'
+    needs: [pre-build, build, release, snapshot, release-reports, snapshot-reports]
+    if: >-
+      !cancelled() && !failure() &&
+      needs.pre-build.outputs.DRAFT_TO_LIVE == 'DEPLOY' && github.ref_name == 'draft'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - run: echo 'Put here software live draft stage installations steps'
+
+  live-publish:
+    name: 'Deploy: live: publish'
+    needs: [pre-build, build, release, snapshot, release-reports, snapshot-reports]
+    if: >-
+      !cancelled() && !failure() &&
+      needs.pre-build.outputs.MASTER_TO_LIVE == 'DEPLOY' && github.ref_name == 'master'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - run: "echo 'Put here software live publish stage installations steps: the release published by draft'"
+
+  # Tag
+
+  tag:
+    name: 'Tag'
+    needs: [pre-build, dev, test-draft, test-publish, prelive, live-draft, live-publish]
+    if: >-
+      !cancelled() && !failure() &&
+      needs.pre-build.outputs.MASTER_TO_LIVE == 'DEPLOY' && github.ref_name == 'master'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v5
+      - run: |
+          echo 'Put here tagging. For example: '
+          echo 'smi-new-tag 1.2.3'
+          echo 'And logic to get tag from source files for example.'
+
+  # Post
+
+  post:
+    name: 'Post'
+    needs: [pre-build, build-tools, install, build, release, snapshot, release-reports, snapshot-reports,
+            dev, test-draft, test-publish, prelive, live-draft, live-publish, tag]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      # 9 EXAMPLE : just placeholder for actions after any build.
+      - run: echo "Always"
+
+      - if: ${{ !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled') }}
+        run: 'echo "Put here e-mail to ${SMI_MAIL_TO}: Workflow ${GITHUB_WORKFLOW}, run ${GITHUB_RUN_NUMBER}, branch ${GITHUB_REF_NAME} SUCCESSFUL post step"'
+
+      - if: ${{ contains(needs.*.result, 'failure') }}
+        run: 'echo "Put here e-mail to ${SMI_MAIL_TO}: Workflow ${GITHUB_WORKFLOW}, run ${GITHUB_RUN_NUMBER}, branch ${GITHUB_REF_NAME} FAILED post step"'

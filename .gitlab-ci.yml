@@ -1,0 +1,266 @@
+# GitLab CI/CD port of the Jenkinsfile, kept 1:1 with it: the same stages, the same branch
+# conditions and the same *_TO_* switches. The Jenkinsfile header and README.md describe the
+# branching model, the draft and publish stages and the switches; that is not repeated here.
+#
+# Jenkinsfile -> GitLab CI/CD
+#   pollSCM                                  workflow rules: a pipeline on every push to a branch. No merge
+#                                            request pipelines, no tag pipelines.
+#   disableConcurrentBuilds(abortPrevious)   workflow auto_cancel on_new_commit + interruptible jobs: a new
+#                                            commit cancels the running pipeline of the same branch.
+#                                            quietPeriod has no equivalent.
+#   agent any                                any runner. Deploying to own machines needs a project runner,
+#                                            selected with tags.
+#   stage, parallel                          stages; the jobs of one stage run in parallel.
+#   environment { }                          variables below. A commented out switch is not defined, so its
+#                                            rule never matches.
+#   when { }                                 rules; several rules are OR-ed, like anyOf. A job whose rules do
+#                                            not match is left out of the pipeline, not shown as skipped.
+#   post { }                                 jobs in the .post stage, with when: always / on_success /
+#                                            on_failure.
+#   one workspace for all stages             every job gets a fresh clone; pass build output on with
+#                                            artifacts.
+
+workflow:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH
+  auto_cancel:
+    on_new_commit: interruptible
+
+default:
+  interruptible: true
+
+stages:
+  - Inspection
+  - Preparation
+  - Build
+  - Publish
+  - Deploy
+  - Tag
+
+variables:
+  # 1 EXAMPLE : PATH setup example: export PATH="/opt/setmy.info/bin:$PATH" in before_script
+  # 2 EXAMPLE : Variables usage
+  ABC: 'DEF'
+  GHI: "$ABC"
+
+  SMI_PROFILES: 'ci'
+
+  SMI_MAIL_TO: 'has@gintra'
+
+  MASTER_TO_LIVE: 'DEPLOY'
+  DRAFT_TO_LIVE: 'DEPLOY'
+
+  RELEASE_TO_PRELIVE: 'DEPLOY'
+  HOTFIX_TO_PRELIVE: 'DEPLOY'
+
+  DEVELOPMENT_TO_TEST_DRAFT: 'DEPLOY'
+  RELEASE_TO_TEST_DRAFT: 'DEPLOY'
+  HOTFIX_TO_TEST_DRAFT: 'DEPLOY'
+
+  #DEVELOPMENT_TO_TEST_PUBLISH: 'DEPLOY'
+  #RELEASE_TO_TEST_PUBLISH: 'DEPLOY'
+  #HOTFIX_TO_TEST_PUBLISH: 'DEPLOY'
+
+  DEVELOPMENT_TO_DEV: 'DEPLOY'
+
+# Inspection
+
+'Pre-build':
+  stage: Inspection
+  script:
+    - 'echo "Runner: ${CI_RUNNER_DESCRIPTION}"'
+    - 'echo "Operating system: $(uname -s)"'
+
+    - echo "Hello from command shell"
+
+    # 3 EXAMPLE : File based check
+    - test -f README.md || { echo 'README.md missing'; exit 1; }
+
+    - echo 'Pre build inspection and precondition check. Put here commands to check, that build tools are installed.'
+
+    # 4 EXAMPLE : Variables usage vol 2
+    - echo "GHI=${GHI}"
+    - echo "Message GHI=${GHI}"
+
+    # 5 EXAMPLE : Just emulating longer build
+    - sleep 5
+
+    # 6 EXAMPLE : Repeating example
+    - for attempt in 1 2 3 4 5 6 7; do echo "Many times, why?" && break; done
+
+    # 7 EXAMPLE : Timeout example
+    - timeout 600 echo "What is this time?"
+
+    # 8 EXAMPLE : email sending
+    - 'echo "Put here e-mail to ${SMI_MAIL_TO}: Job ${CI_PROJECT_PATH}, pipeline ${CI_PIPELINE_IID}, url ${CI_PIPELINE_URL}"'
+
+'Build tools':
+  stage: Inspection
+  script:
+    - echo 'Build tools installation and preparation (setup, config)'
+    - echo "Hello stage B"
+
+# Preparation
+
+'Install':
+  stage: Preparation
+  script:
+    - echo 'Preparing the software to be built. Installation commands go here.'
+    - echo 'npm install'
+    - echo 'Put here build configuration commands'
+    - echo './config'
+
+# Build
+
+'Build':
+  stage: Build
+  script:
+    - echo 'Cleaning command, because in some cases shared directories can have previous build garbage'
+    - echo 'mvn clean'
+
+    - echo 'Put here resource copy commands'
+    - echo 'command to prepare files'
+
+    - echo 'Put here compilation commands. Can be omitted.'
+    - echo 'mvn compile -Pci'
+    - echo 'mvn test-compile -Pci'
+
+    - echo 'Put here unit tests'
+    - echo 'mvn test -Pci'
+
+    - echo 'Put here integration tests. Previous steps can be merged here,.'
+    - echo 'mvn verify -Pci'
+    - "echo 'Or just: mvn clean verify -Pci (without previous)'"
+
+    - echo 'Put here mutation tests'
+    - echo 'mvn org.pitest:pitest-maven:mutationCoverage'
+
+    - echo 'Put here reporting builds steps can include (unit tests coverage, mutation test coverage, findbugs, vuln. checks, )'
+    - echo 'Containing here findbug/stopbug, check style, dependencies vulnreability checks, docs gen, etc'
+    - echo 'mvn site:site -Pci'
+
+    - echo 'Put here site deploy'
+    - echo 'mvn site:deploy -Pci'
+
+    - echo 'Put here e2e tests'
+    - echo 'mvn verify -Pe2e -Pci'
+
+    - echo 'Put here system tests'
+    - echo 'Put here acceptance tests'
+
+    - echo 'Put here packaging'
+    - echo 'mvn package -DskipTests -DskipITs -Pci'
+
+    - echo 'Put here local publishing'
+    - echo 'mvn deploy -DskipTests -DskipITs -Pci'
+
+# Publish
+
+'Release':
+  stage: Publish
+  rules:
+    - if: $CI_COMMIT_BRANCH == "draft"
+  script:
+    - echo 'Put here software release steps'
+
+'Snapshot':
+  stage: Publish
+  rules:
+    - if: $CI_COMMIT_BRANCH =~ /^devel/
+  script:
+    - echo 'Put here software snapshot publishing steps'
+
+'Release reports':
+  stage: Publish
+  rules:
+    - if: $CI_COMMIT_BRANCH == "draft"
+  script:
+    - echo 'Put here reports publishing steps'
+
+'Snapshot reports':
+  stage: Publish
+  rules:
+    - if: $CI_COMMIT_BRANCH =~ /^devel/
+  script:
+    - echo 'Put here reports publishing steps'
+
+# Deploy
+
+'dev':
+  stage: Deploy
+  rules:
+    - if: $DEVELOPMENT_TO_DEV == "DEPLOY" && $CI_COMMIT_BRANCH =~ /^devel/
+  script:
+    - echo 'Put here software development installations steps'
+
+'test: draft':
+  stage: Deploy
+  rules:
+    - if: $DEVELOPMENT_TO_TEST_DRAFT == "DEPLOY" && $CI_COMMIT_BRANCH =~ /^devel/
+    - if: $RELEASE_TO_TEST_DRAFT == "DEPLOY" && $CI_COMMIT_BRANCH =~ /^release/
+    - if: $HOTFIX_TO_TEST_DRAFT == "DEPLOY" && $CI_COMMIT_BRANCH =~ /^hotfix/
+  script:
+    - echo 'Put here software test draft stage installations steps'
+
+'test: publish':
+  stage: Deploy
+  rules:
+    - if: $DEVELOPMENT_TO_TEST_PUBLISH == "DEPLOY" && $CI_COMMIT_BRANCH =~ /^devel/
+    - if: $RELEASE_TO_TEST_PUBLISH == "DEPLOY" && $CI_COMMIT_BRANCH =~ /^release/
+    - if: $HOTFIX_TO_TEST_PUBLISH == "DEPLOY" && $CI_COMMIT_BRANCH =~ /^hotfix/
+  script:
+    - echo 'Put here software test publish stage installations steps'
+
+'prelive':
+  stage: Deploy
+  rules:
+    - if: $RELEASE_TO_PRELIVE == "DEPLOY" && $CI_COMMIT_BRANCH =~ /^release/
+    - if: $HOTFIX_TO_PRELIVE == "DEPLOY" && $CI_COMMIT_BRANCH =~ /^hotfix/
+  script:
+    - echo 'Put here software prelive installations steps'
+
+'live: draft':
+  stage: Deploy
+  rules:
+    - if: $DRAFT_TO_LIVE == "DEPLOY" && $CI_COMMIT_BRANCH == "draft"
+  script:
+    - echo 'Put here software live draft stage installations steps'
+
+'live: publish':
+  stage: Deploy
+  rules:
+    - if: $MASTER_TO_LIVE == "DEPLOY" && $CI_COMMIT_BRANCH == "master"
+  script:
+    - "echo 'Put here software live publish stage installations steps: the release published by draft'"
+
+# Tag
+
+'Tag':
+  stage: Tag
+  rules:
+    - if: $MASTER_TO_LIVE == "DEPLOY" && $CI_COMMIT_BRANCH == "master"
+  script:
+    - "echo 'Put here tagging. For example: '"
+    - echo 'smi-new-tag 1.2.3'
+    - echo 'And logic to get tag from source files for example.'
+
+# Post
+
+'post: always':
+  stage: .post
+  when: always
+  script:
+    # 9 EXAMPLE : just placeholder for actions after any build.
+    - echo "Always"
+
+'post: success':
+  stage: .post
+  when: on_success
+  script:
+    - 'echo "Put here e-mail to ${SMI_MAIL_TO}: Job ${CI_PROJECT_PATH}, pipeline ${CI_PIPELINE_IID}, url ${CI_PIPELINE_URL}, branch ${CI_COMMIT_BRANCH} SUCCESSFUL post step"'
+
+'post: failure':
+  stage: .post
+  when: on_failure
+  script:
+    - 'echo "Put here e-mail to ${SMI_MAIL_TO}: Job ${CI_PROJECT_PATH}, pipeline ${CI_PIPELINE_IID}, url ${CI_PIPELINE_URL}, branch ${CI_COMMIT_BRANCH} FAILED post step"'

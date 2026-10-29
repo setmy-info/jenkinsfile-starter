@@ -1,0 +1,334 @@
+# Bitbucket Pipelines port of the Jenkinsfile, kept as close to it as Bitbucket allows: the same
+# stages, the same branch conditions and the same *_TO_* switches. The Jenkinsfile header and
+# README.md describe the branching model, the draft and publish stages and the switches; that is
+# not repeated here.
+#
+# Jenkinsfile -> Bitbucket Pipelines
+#   pollSCM                                  branch pipelines: a pipeline on every push to a branch. No pull
+#                                            request pipelines, no tag pipelines.
+#   disableConcurrentBuilds(abortPrevious)   no equivalent: a new commit does not stop the running pipeline.
+#   agent any                                image below. Deploying to own machines needs a self-hosted
+#                                            runner, selected with runs-on.
+#   stage, parallel                          steps, parallel.
+#   environment { }                          the &environment script below, exported at the start of every
+#                                            step. The yml cannot hold variables, and a commented out switch
+#                                            is left unset, like in the Jenkinsfile.
+#   when { branch }                          Bitbucket has no conditions: every branch has its own pipeline
+#                                            under branches, holding the stages that branch runs. Branches no
+#                                            pattern matches (feature*) run the default pipeline.
+#   when { environment }                     checked by the deploy step itself: a switch that is not 'DEPLOY'
+#                                            ends the step early, as passed, with a "Skipped" line.
+#   post { }                                 no equivalent for the whole pipeline: use the repository's
+#                                            e-mail notifications, or after-script, which runs per step.
+#   one workspace for all stages             every step gets a fresh clone; pass build output on with
+#                                            artifacts.
+
+image: atlassian/default-image:4
+
+definitions:
+  steps:
+
+    # Inspection
+
+    - step: &pre-build
+        name: 'Inspection: Pre-build'
+        script:
+          - &environment |
+            # 1 EXAMPLE : PATH setup example
+            #export PATH="/opt/setmy.info/bin:$PATH"
+            # 2 EXAMPLE : Variables usage
+            export ABC='DEF'
+            export GHI="$ABC"
+
+            export SMI_PROFILES='ci'
+
+            export SMI_MAIL_TO='has@gintra'
+
+            export MASTER_TO_LIVE='DEPLOY'
+            export DRAFT_TO_LIVE='DEPLOY'
+
+            export RELEASE_TO_PRELIVE='DEPLOY'
+            export HOTFIX_TO_PRELIVE='DEPLOY'
+
+            export DEVELOPMENT_TO_TEST_DRAFT='DEPLOY'
+            export RELEASE_TO_TEST_DRAFT='DEPLOY'
+            export HOTFIX_TO_TEST_DRAFT='DEPLOY'
+
+            #export DEVELOPMENT_TO_TEST_PUBLISH='DEPLOY'
+            #export RELEASE_TO_TEST_PUBLISH='DEPLOY'
+            #export HOTFIX_TO_TEST_PUBLISH='DEPLOY'
+
+            export DEVELOPMENT_TO_DEV='DEPLOY'
+
+          - 'echo "Runner: $(hostname)"'
+          - 'echo "Operating system: $(uname -s)"'
+
+          - echo "Hello from command shell"
+
+          # 3 EXAMPLE : File based check
+          - test -f README.md || { echo 'README.md missing'; exit 1; }
+
+          - echo 'Pre build inspection and precondition check. Put here commands to check, that build tools are installed.'
+
+          # 4 EXAMPLE : Variables usage vol 2
+          - echo "GHI=${GHI}"
+          - echo "Message GHI=${GHI}"
+
+          # 5 EXAMPLE : Just emulating longer build
+          - sleep 5
+
+          # 6 EXAMPLE : Repeating example
+          - for attempt in 1 2 3 4 5 6 7; do echo "Many times, why?" && break; done
+
+          # 7 EXAMPLE : Timeout example
+          - timeout 600 echo "What is this time?"
+
+          # 8 EXAMPLE : email sending
+          - 'echo "Put here e-mail to ${SMI_MAIL_TO}: Repository ${BITBUCKET_REPO_FULL_NAME}, build ${BITBUCKET_BUILD_NUMBER}"'
+
+    - step: &build-tools
+        name: 'Inspection: Build tools'
+        script:
+          - *environment
+          - echo 'Build tools installation and preparation (setup, config)'
+          - echo "Hello stage B"
+
+    # Preparation
+
+    - step: &install
+        name: 'Preparation: Install'
+        script:
+          - *environment
+          - echo 'Preparing the software to be built. Installation commands go here.'
+          - echo 'npm install'
+          - echo 'Put here build configuration commands'
+          - echo './config'
+
+    # Build
+
+    - step: &build
+        name: 'Build'
+        script:
+          - *environment
+          - echo 'Cleaning command, because in some cases shared directories can have previous build garbage'
+          - echo 'mvn clean'
+
+          - echo 'Put here resource copy commands'
+          - echo 'command to prepare files'
+
+          - echo 'Put here compilation commands. Can be omitted.'
+          - echo 'mvn compile -Pci'
+          - echo 'mvn test-compile -Pci'
+
+          - echo 'Put here unit tests'
+          - echo 'mvn test -Pci'
+
+          - echo 'Put here integration tests. Previous steps can be merged here,.'
+          - echo 'mvn verify -Pci'
+          - "echo 'Or just: mvn clean verify -Pci (without previous)'"
+
+          - echo 'Put here mutation tests'
+          - echo 'mvn org.pitest:pitest-maven:mutationCoverage'
+
+          - echo 'Put here reporting builds steps can include (unit tests coverage, mutation test coverage, findbugs, vuln. checks, )'
+          - echo 'Containing here findbug/stopbug, check style, dependencies vulnreability checks, docs gen, etc'
+          - echo 'mvn site:site -Pci'
+
+          - echo 'Put here site deploy'
+          - echo 'mvn site:deploy -Pci'
+
+          - echo 'Put here e2e tests'
+          - echo 'mvn verify -Pe2e -Pci'
+
+          - echo 'Put here system tests'
+          - echo 'Put here acceptance tests'
+
+          - echo 'Put here packaging'
+          - echo 'mvn package -DskipTests -DskipITs -Pci'
+
+          - echo 'Put here local publishing'
+          - echo 'mvn deploy -DskipTests -DskipITs -Pci'
+
+    # Publish
+
+    - step: &release
+        name: 'Publish: Release'
+        script:
+          - *environment
+          - echo 'Put here software release steps'
+
+    - step: &snapshot
+        name: 'Publish: Snapshot'
+        script:
+          - *environment
+          - echo 'Put here software snapshot publishing steps'
+
+    - step: &release-reports
+        name: 'Publish: Release reports'
+        script:
+          - *environment
+          - echo 'Put here reports publishing steps'
+
+    - step: &snapshot-reports
+        name: 'Publish: Snapshot reports'
+        script:
+          - *environment
+          - echo 'Put here reports publishing steps'
+
+    # Deploy
+
+    - step: &dev
+        name: 'Deploy: dev'
+        script:
+          - *environment
+          - |
+            if [ "${DEVELOPMENT_TO_DEV}" != 'DEPLOY' ]; then
+                echo "Skipped: DEVELOPMENT_TO_DEV=${DEVELOPMENT_TO_DEV}"; exit 0
+            fi
+          - echo 'Put here software development installations steps'
+
+    - step: &test-draft
+        name: 'Deploy: test: draft'
+        script:
+          - *environment
+          - |
+            case "${BITBUCKET_BRANCH}" in
+                devel*) SWITCH=DEVELOPMENT_TO_TEST_DRAFT ;;
+                release*) SWITCH=RELEASE_TO_TEST_DRAFT ;;
+                hotfix*) SWITCH=HOTFIX_TO_TEST_DRAFT ;;
+            esac
+            if [ "$(printenv "${SWITCH}")" != 'DEPLOY' ]; then
+                echo "Skipped: ${SWITCH}=$(printenv "${SWITCH}")"; exit 0
+            fi
+          - echo 'Put here software test draft stage installations steps'
+
+    - step: &test-publish
+        name: 'Deploy: test: publish'
+        script:
+          - *environment
+          - |
+            case "${BITBUCKET_BRANCH}" in
+                devel*) SWITCH=DEVELOPMENT_TO_TEST_PUBLISH ;;
+                release*) SWITCH=RELEASE_TO_TEST_PUBLISH ;;
+                hotfix*) SWITCH=HOTFIX_TO_TEST_PUBLISH ;;
+            esac
+            if [ "$(printenv "${SWITCH}")" != 'DEPLOY' ]; then
+                echo "Skipped: ${SWITCH}=$(printenv "${SWITCH}")"; exit 0
+            fi
+          - echo 'Put here software test publish stage installations steps'
+
+    - step: &prelive
+        name: 'Deploy: prelive'
+        script:
+          - *environment
+          - |
+            case "${BITBUCKET_BRANCH}" in
+                release*) SWITCH=RELEASE_TO_PRELIVE ;;
+                hotfix*) SWITCH=HOTFIX_TO_PRELIVE ;;
+            esac
+            if [ "$(printenv "${SWITCH}")" != 'DEPLOY' ]; then
+                echo "Skipped: ${SWITCH}=$(printenv "${SWITCH}")"; exit 0
+            fi
+          - echo 'Put here software prelive installations steps'
+
+    - step: &live-draft
+        name: 'Deploy: live: draft'
+        script:
+          - *environment
+          - |
+            if [ "${DRAFT_TO_LIVE}" != 'DEPLOY' ]; then
+                echo "Skipped: DRAFT_TO_LIVE=${DRAFT_TO_LIVE}"; exit 0
+            fi
+          - echo 'Put here software live draft stage installations steps'
+
+    - step: &live-publish
+        name: 'Deploy: live: publish'
+        script:
+          - *environment
+          - |
+            if [ "${MASTER_TO_LIVE}" != 'DEPLOY' ]; then
+                echo "Skipped: MASTER_TO_LIVE=${MASTER_TO_LIVE}"; exit 0
+            fi
+          - "echo 'Put here software live publish stage installations steps: the release published by draft'"
+
+    # Tag
+
+    - step: &tag
+        name: 'Tag'
+        script:
+          - *environment
+          - |
+            if [ "${MASTER_TO_LIVE}" != 'DEPLOY' ]; then
+                echo "Skipped: MASTER_TO_LIVE=${MASTER_TO_LIVE}"; exit 0
+            fi
+          - "echo 'Put here tagging. For example: '"
+          - echo 'smi-new-tag 1.2.3'
+          - echo 'And logic to get tag from source files for example.'
+
+pipelines:
+
+  # feature* and every other branch without its own pipeline: built and tested only
+  default:
+    - parallel:
+        - step: *pre-build
+        - step: *build-tools
+    - step: *install
+    - step: *build
+
+  branches:
+
+    'devel**':
+      - parallel:
+          - step: *pre-build
+          - step: *build-tools
+      - step: *install
+      - step: *build
+      - parallel:
+          - step: *snapshot
+          - step: *snapshot-reports
+      - parallel:
+          - step: *dev
+          - step: *test-draft
+          - step: *test-publish
+
+    'release**':
+      - parallel:
+          - step: *pre-build
+          - step: *build-tools
+      - step: *install
+      - step: *build
+      - parallel:
+          - step: *test-draft
+          - step: *test-publish
+          - step: *prelive
+
+    'hotfix**':
+      - parallel:
+          - step: *pre-build
+          - step: *build-tools
+      - step: *install
+      - step: *build
+      - parallel:
+          - step: *test-draft
+          - step: *test-publish
+          - step: *prelive
+
+    'draft':
+      - parallel:
+          - step: *pre-build
+          - step: *build-tools
+      - step: *install
+      - step: *build
+      - parallel:
+          - step: *release
+          - step: *release-reports
+      - step: *live-draft
+
+    'master':
+      - parallel:
+          - step: *pre-build
+          - step: *build-tools
+      - step: *install
+      - step: *build
+      - step: *live-publish
+      - step: *tag

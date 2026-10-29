@@ -181,6 +181,62 @@ environment {
 Mail needs the Email Extension Plugin and an SMTP server under *Manage Jenkins -> System -> Extended E-mail
 Notification*. Without the server, the mail step is the only red thing in an otherwise green build.
 
+### GitHub Actions, GitLab CI/CD and Bitbucket Pipelines
+
+The same pipeline for the three hosted source management systems, ported 1:1 from the Jenkinsfile: the same stages
+and stage names, the same echo placeholders, the same branch conditions and the same `*_TO_*` switches. The tables
+above are the requirements for all four. Copy the file of the system the project lives on:
+
+| System              | File                             |
+|---------------------|----------------------------------|
+| Jenkins             | `Jenkinsfile`                    |
+| GitHub Actions      | `.github/workflows/pipeline.yml` |
+| GitLab CI/CD        | `.gitlab-ci.yml`                 |
+| Bitbucket Pipelines | `bitbucket-pipelines.yml`        |
+
+Everything is commit based: a push to a branch starts a pipeline for that branch, and the branch decides which
+environments, none, one or several, the build is published to and deployed to. No pull request or merge request
+pipelines and no tag pipelines, like in Jenkins.
+
+| Jenkinsfile                               | GitHub Actions                           | GitLab CI/CD                                   | Bitbucket Pipelines                               |
+|-------------------------------------------|------------------------------------------|------------------------------------------------|---------------------------------------------------|
+| `pollSCM`                                 | `on: push`, every branch                 | `workflow: rules`, push to a branch            | branch pipelines                                  |
+| `disableConcurrentBuilds(abortPrevious)`  | `concurrency`, `cancel-in-progress`      | `auto_cancel: on_new_commit`, `interruptible`  | none, a running pipeline is not stopped           |
+| `quietPeriod`                             | none                                     | none                                           | none                                              |
+| `stage`, `parallel`                       | jobs, `needs`                            | `stages`, jobs of one stage run in parallel    | `step`, `parallel`                                |
+| `environment { }`                         | `env:`, handed on by Pre-build outputs   | `variables:`                                   | `&environment` script, exported in every step     |
+| `when { branch }`                         | job `if:`                                | `rules:`                                       | one pipeline per branch under `branches:`         |
+| `when { environment }`                    | job `if:`                                | `rules:`                                       | checked in the deploy step, ends it as "Skipped"  |
+| skipped stage                             | job shown as skipped                     | job left out of the pipeline                   | step left out, or passed with a "Skipped" line    |
+| `post { always, success, failure }`       | Post job, `if: always()`                 | `.post` stage, `when:`                         | none, repository notifications or `after-script`  |
+| `unstable`                                | none                                     | none (`allow_failure` jobs warn)               | none                                              |
+| one workspace for all stages              | checkout in every job, artifacts         | fresh clone in every job, `artifacts:`         | fresh clone in every step, `artifacts:`           |
+
+Switches work the same way everywhere: `'DEPLOY'` runs the stage, and a commented out switch is not defined, so the
+stage is skipped. Uncommenting it switches the stage on. In Bitbucket the switches are the `export` lines of the
+`&environment` script at the top of the file, because a `bitbucket-pipelines.yml` cannot hold variables.
+
+Differences to keep in mind:
+
+* Every stage gets its own runner and a fresh clone, where Jenkins has one workspace. What Build makes, Publish and
+  Deploy have to get as artifacts.
+* Deploying to own machines (`make upload-live`, `rsync`, ...) needs a self-hosted runner in the own network: GitHub
+  `runs-on: self-hosted`, GitLab runner `tags:`, Bitbucket `runs-on: self.hosted`. The hosted runners reach only the
+  internet.
+* Mail: the hosted systems mail the pipeline result themselves, to the committer or to whoever watches the
+  repository. The `Put here e-mail to ${SMI_MAIL_TO}` steps are placeholders for a fixed address, like in Jenkins.
+* Tagging from GitHub needs `permissions: contents: write`, set on the Tag job. GitLab and Bitbucket need a token
+  or SSH key with write access in the project or repository variables.
+* Software without drafting changes `draft` to `master` in the Release and Release reports conditions, the same way
+  as in the Jenkinsfile. In Bitbucket the Release and Release reports steps move from the `draft` pipeline to the
+  `master` pipeline, and the `draft` pipeline is removed.
+
+Drafting is mostly for web pages and web apps: the live draft stage shows the new version on the live machine, at
+the same URLs, only to reviewers, and the live publish stage makes that same version visible to everyone. For an
+nginx served site, see `DRAFT-GUIDE.md` in the `nginx` configuration project: live: draft installs the release into
+the `draft/` folder of the vhost, and live: publish copies `draft/` over the released folders with `rsync -a
+--delete`, so what goes public is byte for byte what was accepted.
+
 ### Tips and tricks
 
 1. Environment variables and other variables usage
